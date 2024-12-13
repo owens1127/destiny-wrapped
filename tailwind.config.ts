@@ -6,6 +6,18 @@ export default {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  safelist: [
+    "from-purple-500",
+    "to-pink-500",
+    "from-blue-500",
+    "to-teal-500",
+    "from-green-500",
+    "to-yellow-500",
+    "from-red-500",
+    "to-orange-500",
+    "from-indigo-500",
+    "to-purple-500",
+  ],
   theme: {
     extend: {
       colors: {

@@ -3,6 +3,7 @@
 import { ActivityWrapper } from "@/components/ActivityWrapper";
 import { DestinyWrapped } from "@/components/DestinyWrapped";
 import { PageSkeleton } from "@/components/PageSkeleton";
+
 import { useDestinyCharacters } from "@/hooks/useDestinyCharacters";
 import { useDestinyManifestComponent } from "@/hooks/useDestinyManifestComponent";
 import { useDestinyProfile } from "@/hooks/useDestinyProfile";
@@ -42,6 +43,14 @@ export default function Home() {
         <DestinyWrapped
           activities={activities}
           characterMap={charactersQuery.data.characterClasses}
+          displayName={
+            <>
+              <span>{profileQuery.data.displayName}</span>
+              <span className="text-gray-300">
+                #{profileQuery.data.bungieGlobalDisplayNameCode}
+              </span>
+            </>
+          }
         />
       )}
     />

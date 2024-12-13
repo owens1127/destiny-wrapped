@@ -1,7 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        hostname: "www.bungie.net",
+        pathname: "/img/destiny_content/pgcr/*",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

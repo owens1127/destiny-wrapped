@@ -7,7 +7,8 @@ import { getServerSession } from "./api/auth";
 import { cookies } from "next/headers";
 import { ThemeButton } from "@/components/ThemeButton";
 import { AuthHeader } from "@/components/AuthHeader";
-import { QueryClientProviderWrapper } from "@/components/ui/QueryClientProviderWrapper";
+import { ColorContextProvider } from "@/hooks/useColor";
+import { QueryClientProviderWrapper } from "@/components/QueryClientProviderWrapper";
 import Link from "next/link";
 
 const geistSans = Geist({
@@ -39,15 +40,17 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background`}
       >
         <QueryClientProviderWrapper>
-          <CustomSessionProvider serverSession={serverSession}>
-            <header>
-              <div className="flex flex-col gap-3 items-end p-4">
-                <AuthHeader />
-                <ThemeButton />
-              </div>
-            </header>
-            {children}
-          </CustomSessionProvider>
+          <ColorContextProvider>
+            <CustomSessionProvider serverSession={serverSession}>
+              <header>
+                <div className="flex flex-col gap-3 items-end p-4">
+                  <AuthHeader />
+                  <ThemeButton />
+                </div>
+              </header>
+              {children}
+            </CustomSessionProvider>
+          </ColorContextProvider>
         </QueryClientProviderWrapper>
         <Toaster />
         <footer>
