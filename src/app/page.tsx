@@ -45,7 +45,7 @@ export default function Home() {
           characterMap={charactersQuery.data.characterClasses}
           displayName={
             <>
-              <span>{profileQuery.data.displayName}</span>
+              <span>{profileQuery.data.bungieGlobalDisplayName}</span>
               <span className="text-gray-300 opacity-80">
                 #{profileQuery.data.bungieGlobalDisplayNameCode}
               </span>
