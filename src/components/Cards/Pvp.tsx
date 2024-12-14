@@ -6,7 +6,7 @@ import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatHours } from "./utils";
 import { useColor } from "@/hooks/useColor";
 import { DestinyWrappedCard } from "../DestinyWrappedCard";
-import { Shield, Swords, Clock, Trophy } from "lucide-react";
+import { Swords, Clock, Trophy, MonitorPlay } from "lucide-react";
 
 interface PvpStats {
   games: number;
@@ -119,7 +119,7 @@ export function PvpStatsCard({ pvpStats, idx }: PvpStatsCardProps) {
           className="grid grid-cols-2 gap-4 mb-6"
         >
           <StatItem
-            icon={<Shield className="w-6 h-6 text-blue-400" />}
+            icon={<MonitorPlay className="w-6 h-6 text-gray-800" />}
             label="Matches Played"
             value={pvpStats.games.toString()}
             delay={0.1}

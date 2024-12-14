@@ -53,7 +53,7 @@ export const activityModeNames: { [key: number]: string } = {
   [DestinyActivityModeType.IronBannerControl]: "Iron Banner Control",
   [DestinyActivityModeType.IronBannerClash]: "Iron Banner Clash",
   [DestinyActivityModeType.IronBannerSupremacy]: "Iron Banner Supremacy",
-  [DestinyActivityModeType.ScoredNightfall]: "Scored Nightfall",
+  [DestinyActivityModeType.ScoredNightfall]: "Nightfalls",
   [DestinyActivityModeType.ScoredHeroicNightfall]: "Scored Heroic Nightfall",
   [DestinyActivityModeType.Rumble]: "Rumble",
   [DestinyActivityModeType.AllDoubles]: "All Doubles",
