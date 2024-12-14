@@ -46,7 +46,7 @@ export default function Home() {
           displayName={
             <>
               <span>{profileQuery.data.displayName}</span>
-              <span className="text-gray-300">
+              <span className="text-gray-300 opacity-80">
                 #{profileQuery.data.bungieGlobalDisplayNameCode}
               </span>
             </>

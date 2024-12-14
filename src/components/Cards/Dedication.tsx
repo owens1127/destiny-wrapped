@@ -2,9 +2,10 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useColor } from "@/hooks/useColor";
 import { format } from "date-fns";
+import { DestinyWrappedCard } from "../DestinyWrappedCard";
 
 interface LongestStreak {
   numDays: number;
@@ -22,9 +23,7 @@ export function DedicationCard({ longestStreak, idx }: DedicationCardProps) {
   const colorClass = useColor(idx);
 
   return (
-    <Card
-      className={`w-full max-w-md mx-auto overflow-hidden bg-gradient-to-br ${colorClass}`}
-    >
+    <DestinyWrappedCard className={`bg-gradient-to-br ${colorClass}`}>
       <CardHeader className="relative z-10">
         <CardTitle className="text-4xl font-bold text-center text-white drop-shadow-lg">
           You got a bit streaky
@@ -41,17 +40,15 @@ export function DedicationCard({ longestStreak, idx }: DedicationCardProps) {
           <h3 className="text-6xl font-bold mb-2">{longestStreak.numDays}</h3>
           <p className="text-2xl">days in a row</p>
         </motion.div>
-        <motion.div
+        <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="text-center mb-8"
+          className="text-2xl text-center mb-8 bg-white/10 p-4"
         >
-          <p className="text-2xl">
-            {format(longestStreak.start, "MMM d")} -{" "}
-            {format(longestStreak.end, "MMM d, yyyy")}
-          </p>
-        </motion.div>
+          {format(longestStreak.start, "MMM d")} -{" "}
+          {format(longestStreak.end, "MMM d, yyyy")}
+        </motion.p>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -65,6 +62,6 @@ export function DedicationCard({ longestStreak, idx }: DedicationCardProps) {
           <p className="text-xl">activities</p>
         </motion.div>
       </CardContent>
-    </Card>
+    </DestinyWrappedCard>
   );
 }

@@ -7,6 +7,7 @@ import { formatHours } from "./utils";
 import { useColor } from "@/hooks/useColor";
 import { useGetActivityDefinition } from "@/hooks/useGetActivityDefinition";
 import { DestinyWrappedCard } from "../DestinyWrappedCard";
+import Image from "next/image";
 
 interface Activity {
   hash: number;
@@ -30,7 +31,7 @@ export function TopActivitiesCard({
     <DestinyWrappedCard className={`bg-gradient-to-br ${colorClass}`}>
       <CardHeader className="relative z-10">
         <CardTitle className="text-4xl font-bold text-center text-white drop-shadow-lg">
-          Your Most Launched Activities
+          These activities kept pulling you back
         </CardTitle>
       </CardHeader>
       <CardContent className="relative z-10 p-6 text-white">
@@ -65,6 +66,16 @@ export function TopActivitiesCard({
                   {count} activities • {formatHours(timePlayedSeconds)}
                 </p>
               </div>
+              <Image
+                src={
+                  "https://www.bungie.net" +
+                  getActivityDefinition(hash)?.pgcrImage
+                }
+                width={16 * 6}
+                height={9 * 6}
+                alt={getActivityDefinition(hash)?.displayProperties.name ?? ""}
+                className="rounded-md"
+              />
             </motion.li>
           ))}
         </motion.ol>

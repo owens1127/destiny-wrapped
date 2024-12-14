@@ -77,7 +77,7 @@ export function SummaryCard({
       <CardHeader className="relative z-10">
         <CardTitle className="text-4xl font-bold text-center text-white drop-shadow-lg">
           <div className="text-2xl font-normal">
-            <i>Destiny 2</i> Wrapped 2024
+            <i>Destiny 2:</i> Wrapped, 2024
           </div>
           <h4>{displayName}</h4>
         </CardTitle>

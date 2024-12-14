@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
         hostname: "www.bungie.net",
         pathname: "/img/destiny_content/pgcr/*",
       },
+      {
+        hostname: "www.bungie.net",
+        pathname: "/img/theme/destiny/bgs/pgcrs/placeholder.jpg",
+      },
     ],
   },
 };

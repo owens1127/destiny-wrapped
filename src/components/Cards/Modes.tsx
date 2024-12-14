@@ -35,7 +35,7 @@ export function ModesCard({
     <DestinyWrappedCard className={`bg-gradient-to-br ${colorClass}`}>
       <CardHeader className="relative z-10">
         <CardTitle className="text-4xl font-bold text-center text-white drop-shadow-lg">
-          Your Favorite Activity Category
+          You really loved
         </CardTitle>
       </CardHeader>
       <CardContent className="relative z-10 flex flex-col items-center justify-center p-6 text-white">

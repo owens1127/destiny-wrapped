@@ -12,6 +12,12 @@ import {
   seasonWeights,
 } from "@/lib/maps";
 
+/**
+ * This calculates a bunch of stats based on the activities the user has played.
+ *
+ * yes, it's a lot of code, but it's all just grouping and counting so it makes
+ * sense to keep it all together for some minor performance gains.
+ */
 export const useWrappedStats = (
   activities: (DestinyHistoricalStatsPeriodGroup & {
     characterId: string;
@@ -65,8 +71,6 @@ export const useWrappedStats = (
 
     const newRaidActivities: DestinyHistoricalStatsPeriodGroup[] = [];
     const newDungeonActivities: DestinyHistoricalStatsPeriodGroup[] = [];
-
-    const shatteredThroneAttempts: DestinyHistoricalStatsPeriodGroup[] = [];
 
     const gambitGames: DestinyHistoricalStatsPeriodGroup[] = [];
     const pvpGames: DestinyHistoricalStatsPeriodGroup[] = [];
@@ -140,13 +144,6 @@ export const useWrappedStats = (
         newRaidActivities.push(activity);
       } else if (newDungeonHashes.includes(hash)) {
         newDungeonActivities.push(activity);
-      }
-
-      if (
-        hash === 2032534090 &&
-        activity.values["completed"].basic.value === 1
-      ) {
-        shatteredThroneAttempts.push(activity);
       }
 
       // gambit games
@@ -290,6 +287,12 @@ export const useWrappedStats = (
           seasonWeights[bName]
     )[0];
 
+    const monthlyPlayTimeByDay = new Array(32).fill(0);
+    mostPopularMonthEntries.forEach((entry) => {
+      monthlyPlayTimeByDay[new Date(entry.period).getDate()] +=
+        entry.values["timePlayedSeconds"].basic.value;
+    });
+
     return {
       mostPopularMonth: {
         id: mostPopularMonthId,
@@ -298,6 +301,7 @@ export const useWrappedStats = (
           (acc, e) => e.values["timePlayedSeconds"].basic.value + acc,
           0
         ),
+        playtimeByDay: monthlyPlayTimeByDay,
       },
       leastPopularSeason: {
         name: leastPopularSeasonName,
@@ -339,18 +343,6 @@ export const useWrappedStats = (
         ).length,
         timePlayed: newRaidActivities.reduce(
           (acc, e) => e.values["timePlayedSeconds"].basic.value + acc,
-          0
-        ),
-      },
-      shatteredThroneStats: {
-        attempts: shatteredThroneAttempts.length,
-        completions: shatteredThroneAttempts.filter(
-          (a) =>
-            a.values["completed"].basic.value === 1 &&
-            a.values["completionReason"].basic.value === 0
-        ).length,
-        fireteamKills: shatteredThroneAttempts.reduce(
-          (acc, e) => e.values["kills"].basic.value + acc,
           0
         ),
       },

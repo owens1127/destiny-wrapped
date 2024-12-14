@@ -3,15 +3,18 @@ import {
   DestinyHistoricalStatsPeriodGroup,
 } from "bungie-net-core/models";
 import { memo } from "react";
-import { DestinyWrappedCard } from "./DestinyWrappedCard";
-import { activityModeNames, destinyClassName, monthNames } from "@/lib/maps";
-import { useGetActivityDefinition } from "@/hooks/useGetActivityDefinition";
+import { activityModeNames } from "@/lib/maps";
 import { useWrappedStats } from "@/hooks/useWrappedStats";
 import { ModesCard } from "./Cards/Modes";
-import { formatHours } from "./Cards/utils";
 import { TopActivitiesCard } from "./Cards/TopActivities";
 import { DedicationCard } from "./Cards/Dedication";
 import { SummaryCard } from "./Cards/Summary";
+import { PopularMonthCard } from "./Cards/PopularMonth";
+import { ClassStatsCard } from "./Cards/ClassStats";
+import { NewChallengesCard } from "./Cards/NewChallenges";
+import { PvpStatsCard } from "./Cards/Pvp";
+import { GambitStatsCard } from "./Cards/Gambit";
+import { LeastFavoriteSeasonCard } from "./Cards/LeastFavoriteSeason";
 
 export const DestinyWrapped = memo(
   (props: {
@@ -21,7 +24,6 @@ export const DestinyWrapped = memo(
     characterMap: Record<string, DestinyClass>;
     displayName: React.ReactNode;
   }) => {
-    const getActivityDefinition = useGetActivityDefinition();
     const {
       topNModes,
       topNActivitiesByCount,
@@ -33,7 +35,6 @@ export const DestinyWrapped = memo(
       sortedClassEntries,
       newDungeonActivities,
       newRaidActivities,
-      shatteredThroneStats,
       gambitStats,
       pvpStats,
       pvePvpSplit,
@@ -43,7 +44,6 @@ export const DestinyWrapped = memo(
       return ":(";
     }
 
-    const topFiveModes = topNModes(5);
     const topMode = topNModes(1)[0];
     const topTenActivitiesByCount = topNActivitiesByCount(10);
     const topActivity = topNActivitiesByPlaytime(1)[0];
@@ -53,115 +53,34 @@ export const DestinyWrapped = memo(
         <h1 className="text-center text-2xl sm:text-4xl">
           Destiny Wrapped 2024
         </h1>
-        <div className="grid gap-8 grid-cols-1 my-8 mx-auto w-[92%] sm:w-[500] lg:w-[600]">
+        <div className="grid gap-8 grid-cols-1 my-8 mx-auto w-[92%] sm:w-[500] md:w-[600]">
           <ModesCard topMode={topMode} totalStats={totalStats} idx={0} />
           <TopActivitiesCard topActivities={topTenActivitiesByCount} idx={1} />
           <DedicationCard longestStreak={longestStreak} idx={2} />
-          <DestinyWrappedCard title="Your Most Active Months">
-            <div>
-              <div>{monthNames[mostPopularMonth.id]}</div>
-              <div>{formatHours(mostPopularMonth.timePlayedSeconds)}</div>
-              <div>
-                {`${(
-                  (100 * mostPopularMonth.timePlayedSeconds) /
-                  totalStats.playTime
-                ).toFixed(2)}% of your yearly play time`}
-              </div>
-              <div>{mostPopularMonth.count} activities played</div>
-            </div>
-          </DestinyWrappedCard>
-          <DestinyWrappedCard title="Your class choice says a lot about you">
-            <div>
-              {sortedClassEntries.map(
-                ([
-                  classType,
-                  { count, timePlayedSeconds, percentTimePlayed },
-                ]) => (
-                  <div key={classType}>
-                    <div>{`${destinyClassName[classType]} ${count} activities`}</div>
-                    <div>{`${formatHours(timePlayedSeconds)}`}</div>
-                    <div>{`${percentTimePlayed.toFixed(2)}%`}</div>
-                  </div>
-                )
-              )}
-            </div>
-          </DestinyWrappedCard>
-          <DestinyWrappedCard title="Your PVP skills were inspiring">
-            <div>
-              <div>{pvpStats.games} games</div>
-              <div>{pvpStats.wins} wins</div>
-              <div>{pvpStats.kills} kills</div>
-              <div>Win rate {(pvpStats.wins / pvpStats.games).toFixed(2)}%</div>
-              <div>{pvpStats.deaths} deaths</div>
-              <div>{pvpStats.assists} assists</div>
-              <div>{formatHours(pvpStats.timePlayed)}</div>
-              <div> K/D {(pvpStats.kills / pvpStats.deaths).toFixed(2)}</div>
-              <div>
-                KA/D{" "}
-                {(
-                  (pvpStats.kills + pvpStats.assists) /
-                  pvpStats.deaths
-                ).toFixed(2)}
-              </div>
-            </div>
-          </DestinyWrappedCard>
+          <PvpStatsCard pvpStats={pvpStats} idx={3} />
+          <ClassStatsCard sortedClassEntries={sortedClassEntries} idx={4} />
+          <PopularMonthCard
+            mostPopularMonth={mostPopularMonth}
+            totalStats={totalStats}
+            idx={5}
+          />
           {!!(newDungeonActivities.count + newRaidActivities.count) && (
-            <DestinyWrappedCard title="You Tackled New Challenges...">
-              <div>
-                <div>{"Vesper's Host"}</div>
-                <div>{newDungeonActivities.completed} completions</div>
-                <div>{newDungeonActivities.count} attempts</div>
-                <div>{formatHours(newDungeonActivities.timePlayed)}</div>
-              </div>
-              <div>
-                <div>{"Salvation's Edge"}</div>
-                <div>{newRaidActivities.completed} completions</div>
-                <div>{newRaidActivities.count} attempts</div>
-                <div>{formatHours(newRaidActivities.timePlayed)}</div>
-              </div>
-            </DestinyWrappedCard>
+            <NewChallengesCard
+              newDungeonActivities={newDungeonActivities}
+              newRaidActivities={newRaidActivities}
+              idx={6}
+            />
           )}
-          <DestinyWrappedCard title="You killed Dul Incaru a few times">
-            <div>
-              <div>{shatteredThroneStats.completions} completions</div>
-              <div>{shatteredThroneStats.attempts} attempts</div>
-              <div>{shatteredThroneStats.fireteamKills} fireteam kills</div>
-            </div>
-          </DestinyWrappedCard>
-          <DestinyWrappedCard title="You even played some Gambit!">
-            <div>
-              <div>{gambitStats.games} games</div>
-              <div>{gambitStats.wins} wins</div>
-              <div>{gambitStats.kills.toLocaleString()} kills</div>
-              <div>
-                Win rate {(gambitStats.wins / gambitStats.games).toFixed(2)}%
-              </div>
-              <div>{gambitStats.deaths} deaths</div>
-              <div>{gambitStats.assists} assists</div>
-              <div>{formatHours(gambitStats.timePlayed)}</div>
-              <div>
-                K/D {(gambitStats.kills / gambitStats.deaths).toFixed(2)}
-              </div>
-            </div>
-          </DestinyWrappedCard>
-
-          <DestinyWrappedCard title="This season was not your favorite">
-            <div>
-              <div>{leastPopularSeason.name}</div>
-              <div>{leastPopularSeason.count} activities</div>
-              <div>{formatHours(leastPopularSeason.timePlayedSeconds)}</div>
-              <div>
-                Percent of yearly playtime{" "}
-                {(
-                  (100 * leastPopularSeason.timePlayedSeconds) /
-                  totalStats.playTime
-                ).toFixed(2)}
-                %
-              </div>
-            </div>
-          </DestinyWrappedCard>
+          {!!gambitStats.games && (
+            <GambitStatsCard gambitStats={gambitStats} idx={7} />
+          )}
+          <LeastFavoriteSeasonCard
+            leastPopularSeason={leastPopularSeason}
+            totalStats={totalStats}
+            idx={8}
+          />
           <SummaryCard
-            idx={10}
+            idx={9}
             displayName={props.displayName}
             totalStats={totalStats}
             topActivity={topActivity}
@@ -170,6 +89,10 @@ export const DestinyWrapped = memo(
             activityModeNames={activityModeNames}
           />
         </div>
+        <p className="text-center max-w-96 mx-auto text-lg">
+          Please share on Twitter/X and/or Bluesky with the tag{" "}
+          <span className="text-blue-400">#Destiny2Wrapped2024</span> ♡
+        </p>
       </main>
     );
   }
