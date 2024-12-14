@@ -26,7 +26,6 @@ export const DestinyWrapped = memo(
   }) => {
     const {
       topNModes,
-      topNActivitiesByCount,
       topNActivitiesByPlaytime,
       totalStats,
       longestStreak,
@@ -45,7 +44,7 @@ export const DestinyWrapped = memo(
     }
 
     const topMode = topNModes(1)[0];
-    const topTenActivitiesByCount = topNActivitiesByCount(10);
+    const topTenActivities = topNActivitiesByPlaytime(10);
     const topActivity = topNActivitiesByPlaytime(1)[0];
 
     return (
@@ -55,7 +54,7 @@ export const DestinyWrapped = memo(
         </h1>
         <div className="grid gap-8 grid-cols-1 my-8 mx-auto w-[92%] sm:w-[500] md:w-[600]">
           <ModesCard topMode={topMode} totalStats={totalStats} idx={0} />
-          <TopActivitiesCard topActivities={topTenActivitiesByCount} idx={1} />
+          <TopActivitiesCard topActivities={topTenActivities} idx={1} />
           <DedicationCard longestStreak={longestStreak} idx={2} />
           <PvpStatsCard pvpStats={pvpStats} idx={3} />
           <ClassStatsCard sortedClassEntries={sortedClassEntries} idx={4} />

@@ -230,16 +230,12 @@ export const useWrappedStats = (
       })
     );
 
-    const sortedByCountInHash = [
-      ...hashedActs.sort((a, b) => b.count - a.count),
-    ];
     const sortedByTimeInHash = hashedActs.sort(
       (a, b) => b.timePlayedSeconds - a.timePlayedSeconds
     );
 
     const topNModes = (n: number) => sortedByTimeInMode.slice(0, n);
-    const topNActivitiesByCount = (n: number) =>
-      sortedByCountInHash.slice(0, n);
+
     const topNActivitiesByPlaytime = (n: number) =>
       sortedByTimeInHash.slice(0, n);
 
@@ -312,7 +308,6 @@ export const useWrappedStats = (
         ),
       },
       topNModes,
-      topNActivitiesByCount,
       topNActivitiesByPlaytime,
       totalStats,
       longestStreak: {
