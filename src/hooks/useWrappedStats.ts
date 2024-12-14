@@ -321,11 +321,11 @@ export const useWrappedStats = (
         count: newDungeonActivities.length,
         completed: newDungeonActivities.filter(
           (a) =>
-            a.values["completed"].basic.value === 1 &&
-            a.values["completionReason"].basic.value === 0
+            a.values["completed"]?.basic.value === 1 &&
+            a.values["completionReason"]?.basic.value === 0
         ).length,
         timePlayed: newDungeonActivities.reduce(
-          (acc, e) => e.values["timePlayedSeconds"].basic.value + acc,
+          (acc, e) => (e.values["timePlayedSeconds"]?.basic.value ?? 0) + acc,
           0
         ),
       },
@@ -333,11 +333,11 @@ export const useWrappedStats = (
         count: newRaidActivities.length,
         completed: newRaidActivities.filter(
           (a) =>
-            a.values["completed"].basic.value === 1 &&
-            a.values["completionReason"].basic.value === 0
+            a.values["completed"]?.basic.value === 1 &&
+            a.values["completionReason"]?.basic.value === 0
         ).length,
         timePlayed: newRaidActivities.reduce(
-          (acc, e) => e.values["timePlayedSeconds"].basic.value + acc,
+          (acc, e) => (e.values["timePlayedSeconds"]?.basic.value ?? 0) + acc,
           0
         ),
       },
@@ -345,8 +345,8 @@ export const useWrappedStats = (
         games: gambitGames.length,
         wins: gambitGames.filter(
           (a) =>
-            a.values["completed"].basic.value === 1 &&
-            a.values["standing"].basic.value === 0
+            a.values["completed"]?.basic.value === 1 &&
+            a.values["standing"]?.basic.value === 0
         ).length,
         kills: gambitGames.reduce(
           (acc, e) => e.values["kills"].basic.value + acc,
@@ -369,8 +369,8 @@ export const useWrappedStats = (
         games: pvpGames.length,
         wins: pvpGames.filter(
           (a) =>
-            a.values["completed"].basic.value === 1 &&
-            a.values["standing"].basic.value === 0
+            a.values["completed"]?.basic.value === 1 &&
+            a.values["standing"]?.basic.value === 0
         ).length,
         kills: pvpGames.reduce(
           (acc, e) => e.values["kills"].basic.value + acc,
