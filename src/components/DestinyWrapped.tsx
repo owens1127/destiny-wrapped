@@ -56,7 +56,7 @@ export const DestinyWrapped = memo(
           <ModesCard topMode={topMode} totalStats={totalStats} idx={0} />
           <TopActivitiesCard topActivities={topTenActivities} idx={1} />
           <DedicationCard longestStreak={longestStreak} idx={2} />
-          <PvpStatsCard pvpStats={pvpStats} idx={3} />
+          {!!pvpStats.games && <PvpStatsCard pvpStats={pvpStats} idx={3} />}
           <ClassStatsCard sortedClassEntries={sortedClassEntries} idx={4} />
           <PopularMonthCard
             mostPopularMonth={mostPopularMonth}

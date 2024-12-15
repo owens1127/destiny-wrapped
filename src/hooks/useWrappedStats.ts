@@ -352,19 +352,19 @@ export const useWrappedStats = (
             a.values["standing"]?.basic.value === 0
         ).length,
         kills: gambitGames.reduce(
-          (acc, e) => e.values["kills"]?.basic.value ?? 0 + acc,
+          (acc, e) => (e.values["kills"]?.basic.value ?? 0) + acc,
           0
         ),
         deaths: gambitGames.reduce(
-          (acc, e) => e.values["deaths"]?.basic.value ?? 0 + acc,
+          (acc, e) => (e.values["deaths"]?.basic.value ?? 0) + acc,
           0
         ),
         assists: gambitGames.reduce(
-          (acc, e) => e.values["assists"]?.basic.value ?? 0 + acc,
+          (acc, e) => (e.values["assists"]?.basic.value ?? 0) + acc,
           0
         ),
         timePlayed: gambitGames.reduce(
-          (acc, e) => e.values["timePlayedSeconds"]?.basic.value ?? 0 + acc,
+          (acc, e) => (e.values["timePlayedSeconds"]?.basic.value ?? 0) + acc,
           0
         ),
       },
@@ -376,19 +376,19 @@ export const useWrappedStats = (
             a.values["standing"]?.basic.value === 0
         ).length,
         kills: pvpGames.reduce(
-          (acc, e) => e.values["kills"]?.basic.value ?? 0 + acc,
+          (acc, e) => (e.values["kills"]?.basic.value ?? 0) + acc,
           0
         ),
         deaths: pvpGames.reduce(
-          (acc, e) => e.values["deaths"]?.basic.value ?? 0 + acc,
+          (acc, e) => (e.values["deaths"]?.basic.value ?? 0) + acc,
           0
         ),
         assists: pvpGames.reduce(
-          (acc, e) => e.values["assists"]?.basic.value ?? 0 + acc,
+          (acc, e) => (e.values["assists"]?.basic.value ?? 0) + acc,
           0
         ),
         timePlayed: pvpGames.reduce(
-          (acc, e) => e.values["timePlayedSeconds"]?.basic.value ?? 0 + acc,
+          (acc, e) => (e.values["timePlayedSeconds"]?.basic.value ?? 0) + acc,
           0
         ),
       },
