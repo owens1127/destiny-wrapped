@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 import { CustomSessionProvider } from "@/components/SessionProvider";
@@ -39,6 +40,7 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background`}
       >
+        <Analytics />
         <QueryClientProviderWrapper>
           <ColorContextProvider>
             <CustomSessionProvider serverSession={serverSession}>
