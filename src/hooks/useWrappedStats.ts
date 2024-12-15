@@ -78,11 +78,11 @@ export const useWrappedStats = (
     activities.forEach((activity) => {
       // total stats
       const timePlayedSeconds =
-        activity.values["timePlayedSeconds"].basic.value;
+        activity.values["timePlayedSeconds"]?.basic.value ?? 0;
       totalStats.playTime += timePlayedSeconds;
-      totalStats.kills += activity.values["kills"].basic.value;
-      totalStats.deaths += activity.values["deaths"].basic.value;
-      totalStats.assists += activity.values["assists"].basic.value;
+      totalStats.kills += activity.values["kills"]?.basic.value ?? 0;
+      totalStats.deaths += activity.values["deaths"]?.basic.value ?? 0;
+      totalStats.assists += activity.values["assists"]?.basic.value ?? 0;
 
       // Group by mode
       activity.activityDetails.modes.forEach((mode) => {
@@ -201,11 +201,11 @@ export const useWrappedStats = (
       .sort(
         ([, a], [, b]) =>
           b.reduce(
-            (acc, e) => acc + e.values["timePlayedSeconds"].basic.value,
+            (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
             0
           ) -
           a.reduce(
-            (acc, e) => acc + e.values["timePlayedSeconds"].basic.value,
+            (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
             0
           )
       )
@@ -213,7 +213,7 @@ export const useWrappedStats = (
         mode,
         count: activities.length,
         timePlayedSeconds: activities.reduce(
-          (acc, e) => acc + e.values["timePlayedSeconds"].basic.value,
+          (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
           0
         ),
         modeName: activityModeNames[mode],
@@ -224,7 +224,7 @@ export const useWrappedStats = (
         hash,
         count: activities.length,
         timePlayedSeconds: activities.reduce(
-          (acc, e) => acc + e.values["timePlayedSeconds"].basic.value,
+          (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
           0
         ),
       })
@@ -244,16 +244,19 @@ export const useWrappedStats = (
     ).sort(
       ([, a], [, b]) =>
         b.reduce(
-          (acc, e) => acc + e.values["timePlayedSeconds"].basic.value,
+          (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
           0
         ) -
-        a.reduce((acc, e) => acc + e.values["timePlayedSeconds"].basic.value, 0)
+        a.reduce(
+          (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
+          0
+        )
     )[0] ?? [11, []];
 
     const sortedClassEntries = Array.from(groupedByClass.entries())
       .map(([classType, activities]) => {
         const timePlayedSeconds = activities.reduce(
-          (acc, e) => e.values["timePlayedSeconds"].basic.value + acc,
+          (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
           0
         );
         return [
@@ -272,12 +275,12 @@ export const useWrappedStats = (
     ).sort(
       ([aName, a], [bName, b]) =>
         a.reduce(
-          (acc, e) => acc + e.values["timePlayedSeconds"].basic.value,
+          (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
           0
         ) *
           seasonWeights[aName] -
         b.reduce(
-          (acc, e) => acc + e.values["timePlayedSeconds"].basic.value,
+          (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
           0
         ) *
           seasonWeights[bName]
@@ -286,7 +289,7 @@ export const useWrappedStats = (
     const monthlyPlayTimeByDay = new Array(32).fill(0);
     mostPopularMonthEntries.forEach((entry) => {
       monthlyPlayTimeByDay[new Date(entry.period).getDate()] +=
-        entry.values["timePlayedSeconds"].basic.value;
+        entry.values["timePlayedSeconds"]?.basic.value ?? 0;
     });
 
     return {
@@ -294,7 +297,7 @@ export const useWrappedStats = (
         id: mostPopularMonthId,
         count: mostPopularMonthEntries.length,
         timePlayedSeconds: mostPopularMonthEntries.reduce(
-          (acc, e) => e.values["timePlayedSeconds"].basic.value + acc,
+          (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
           0
         ),
         playtimeByDay: monthlyPlayTimeByDay,
@@ -303,7 +306,7 @@ export const useWrappedStats = (
         name: leastPopularSeasonName,
         count: leastPopularSeasonActs.length,
         timePlayedSeconds: leastPopularSeasonActs.reduce(
-          (acc, e) => e.values["timePlayedSeconds"].basic.value + acc,
+          (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
           0
         ),
       },
@@ -349,19 +352,19 @@ export const useWrappedStats = (
             a.values["standing"]?.basic.value === 0
         ).length,
         kills: gambitGames.reduce(
-          (acc, e) => e.values["kills"].basic.value + acc,
+          (acc, e) => e.values["kills"]?.basic.value ?? 0 + acc,
           0
         ),
         deaths: gambitGames.reduce(
-          (acc, e) => e.values["deaths"].basic.value + acc,
+          (acc, e) => e.values["deaths"]?.basic.value ?? 0 + acc,
           0
         ),
         assists: gambitGames.reduce(
-          (acc, e) => e.values["assists"].basic.value + acc,
+          (acc, e) => e.values["assists"]?.basic.value ?? 0 + acc,
           0
         ),
         timePlayed: gambitGames.reduce(
-          (acc, e) => e.values["timePlayedSeconds"].basic.value + acc,
+          (acc, e) => e.values["timePlayedSeconds"]?.basic.value ?? 0 + acc,
           0
         ),
       },
@@ -373,19 +376,19 @@ export const useWrappedStats = (
             a.values["standing"]?.basic.value === 0
         ).length,
         kills: pvpGames.reduce(
-          (acc, e) => e.values["kills"].basic.value + acc,
+          (acc, e) => e.values["kills"]?.basic.value ?? 0 + acc,
           0
         ),
         deaths: pvpGames.reduce(
-          (acc, e) => e.values["deaths"].basic.value + acc,
+          (acc, e) => e.values["deaths"]?.basic.value ?? 0 + acc,
           0
         ),
         assists: pvpGames.reduce(
-          (acc, e) => e.values["assists"].basic.value + acc,
+          (acc, e) => e.values["assists"]?.basic.value ?? 0 + acc,
           0
         ),
         timePlayed: pvpGames.reduce(
-          (acc, e) => e.values["timePlayedSeconds"].basic.value + acc,
+          (acc, e) => e.values["timePlayedSeconds"]?.basic.value ?? 0 + acc,
           0
         ),
       },
