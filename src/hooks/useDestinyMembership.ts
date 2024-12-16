@@ -10,10 +10,10 @@ export const useDestinyMembership = () => {
     queryKey: ["membershipData", session.data.bungieMembershipId],
     queryFn: () => bungie.getMembershipData(session.data),
     select: (data) =>
-      data.destinyMemberships.find(
-        (membership) =>
-          membership.membershipId === data.primaryMembershipId ||
-          !!membership.applicableMembershipTypes.length
-      ) ?? data.destinyMemberships[0],
+      data.profiles.sort(
+        (a, b) =>
+          new Date(b.dateLastPlayed).getTime() -
+          new Date(a.dateLastPlayed).getTime()
+      )[0],
   });
 };
