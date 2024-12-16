@@ -3,10 +3,10 @@ import {
   AllDestinyManifestComponents,
   getDestinyManifestComponent,
 } from "bungie-net-core/manifest";
-import { getMembershipDataForCurrentUser } from "bungie-net-core/endpoints/User";
 import {
   getActivityHistory,
   getDestinyManifest,
+  getLinkedProfiles,
   getProfile,
 } from "bungie-net-core/endpoints/Destiny2";
 import {
@@ -97,10 +97,15 @@ export class BungieHttpClient {
     });
   }
 
-  async getMembershipData(params: { accessToken: string }) {
-    return await getMembershipDataForCurrentUser(
-      this.platformHttp(params.accessToken)
-    ).then((res) => res.Response);
+  async getMembershipData(params: {
+    accessToken: string;
+    bungieMembershipId: string;
+  }) {
+    return await getLinkedProfiles(this.platformHttp(params.accessToken), {
+      membershipId: params.bungieMembershipId,
+      membershipType: -1,
+      getAllMemberships: true,
+    }).then((res) => res.Response);
   }
 
   async getBasicProfile(params: {
