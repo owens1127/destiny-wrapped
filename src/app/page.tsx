@@ -6,18 +6,21 @@ import { PageSkeleton } from "@/components/PageSkeleton";
 
 import { useDestinyCharacters } from "@/hooks/useDestinyCharacters";
 import { useDestinyManifestComponent } from "@/hooks/useDestinyManifestComponent";
-import { useDestinyProfile } from "@/hooks/useDestinyProfile";
+import { useDestinyMembership } from "@/hooks/useDestinyMembership";
+import { useToast } from "@/hooks/useToast";
+import { useEffect } from "react";
 
 export default function Home() {
   // preloading
   useDestinyManifestComponent("DestinyActivityDefinition");
+  const { toast } = useToast();
 
-  const profileQuery = useDestinyProfile();
+  const membershipQuery = useDestinyMembership();
   const charactersQuery = useDestinyCharacters(
-    profileQuery.isSuccess
+    membershipQuery.isSuccess
       ? {
-          destinyMembershipId: profileQuery.data.membershipId,
-          membershipType: profileQuery.data.membershipType,
+          destinyMembershipId: membershipQuery.data.membershipId,
+          membershipType: membershipQuery.data.membershipType,
         }
       : {
           destinyMembershipId: "",
@@ -25,18 +28,38 @@ export default function Home() {
         }
   );
 
-  if (profileQuery.isPending || charactersQuery.isPending) {
+  useEffect(() => {
+    if (membershipQuery.isError) {
+      toast({
+        title: "Error fetching membership data",
+        description: membershipQuery.error.message,
+        variant: "destructive",
+      });
+    }
+  }, [toast, membershipQuery.isError, membershipQuery.error]);
+
+  useEffect(() => {
+    if (charactersQuery.isError) {
+      toast({
+        title: "Error fetching character data",
+        description: charactersQuery.error.message,
+        variant: "destructive",
+      });
+    }
+  }, [toast, charactersQuery.isError, charactersQuery.error]);
+
+  if (membershipQuery.isPending || charactersQuery.isPending) {
     return <PageSkeleton />;
   }
 
-  if (profileQuery.isError || charactersQuery.isError) {
+  if (membershipQuery.isError || charactersQuery.isError) {
     return null;
   }
 
   return (
     <ActivityWrapper
-      destinyMembershipId={profileQuery.data.membershipId}
-      membershipType={profileQuery.data.membershipType}
+      destinyMembershipId={membershipQuery.data.membershipId}
+      membershipType={membershipQuery.data.membershipType}
       characterIds={charactersQuery.data.characterIds}
       fallback={<PageSkeleton />}
       render={(activities) => (
@@ -45,9 +68,9 @@ export default function Home() {
           characterMap={charactersQuery.data.characterClasses}
           displayName={
             <>
-              <span>{profileQuery.data.bungieGlobalDisplayName}</span>
+              <span>{membershipQuery.data.bungieGlobalDisplayName}</span>
               <span className="text-gray-300 opacity-80">
-                #{profileQuery.data.bungieGlobalDisplayNameCode}
+                #{membershipQuery.data.bungieGlobalDisplayNameCode}
               </span>
             </>
           }

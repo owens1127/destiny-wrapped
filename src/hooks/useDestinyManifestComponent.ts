@@ -12,7 +12,7 @@ export const useDestinyManifestComponent = <
   const manifestQuery = useDestinyManifest();
 
   return useQuery({
-    enabled: !!manifestQuery.data,
+    enabled: manifestQuery.isSuccess,
     queryKey: ["Destiny2ManifestComponent", tableName],
     queryFn: () => bungie.getManifestComponent(tableName, manifestQuery.data!),
     staleTime: 3600_000,

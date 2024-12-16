@@ -1,13 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useDestinyProfile } from "@/hooks/useDestinyProfile";
+import { useDestinyMembership } from "@/hooks/useDestinyMembership";
 import { useBungieSession } from "next-bungie-auth/client";
 import { Skeleton } from "./ui/skeleton";
 
 export const AuthHeader = () => {
   const session = useBungieSession();
-  const profileQuery = useDestinyProfile();
+  const profileQuery = useDestinyMembership();
 
   return (
     <div className="flex items-center justify-end gap-2">

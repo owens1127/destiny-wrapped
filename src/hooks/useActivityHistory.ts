@@ -25,6 +25,7 @@ export const useActivityHistory = (params: {
             ) ?? []),
           ]),
           isError: acc.isError || result.isError,
+          error: acc.error ?? result.error,
           isPending: acc.isPending || result.isPending,
           isSuccess: acc.isSuccess && result.isSuccess,
         }),
@@ -36,6 +37,7 @@ export const useActivityHistory = (params: {
             }
           >(),
           isError: false,
+          error: null as Error | null,
           isPending: false,
           isSuccess: true,
         }
@@ -50,6 +52,7 @@ export const useActivityHistory = (params: {
     },
     queries: params.characterIds.map((characterId) => ({
       staleTime: 300_000,
+      retry: 1,
       enabled: !!params.characterIds.length,
       queryKey: [
         "activity history",

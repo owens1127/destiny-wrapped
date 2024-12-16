@@ -2,13 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useBungie } from "./useBungie";
 import { useAuthorizedBungieSession } from "next-bungie-auth/client";
 
-export const useDestinyProfile = () => {
+export const useDestinyMembership = () => {
   const session = useAuthorizedBungieSession();
   const bungie = useBungie();
 
   return useQuery({
-    queryKey: ["destinyProfiles", session.data.bungieMembershipId],
-    queryFn: () => bungie.getLinkedProfilesForBungieMembership(session.data),
+    queryKey: ["membershipData", session.data.bungieMembershipId],
+    queryFn: () => bungie.getMembershipData(session.data),
     select: (data) =>
       data.destinyMemberships.find(
         (membership) =>

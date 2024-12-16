@@ -3,7 +3,7 @@ import {
   AllDestinyManifestComponents,
   getDestinyManifestComponent,
 } from "bungie-net-core/manifest";
-import { getMembershipDataById } from "bungie-net-core/endpoints/User";
+import { getMembershipDataForCurrentUser } from "bungie-net-core/endpoints/User";
 import {
   getActivityHistory,
   getDestinyManifest,
@@ -97,14 +97,10 @@ export class BungieHttpClient {
     });
   }
 
-  async getLinkedProfilesForBungieMembership(params: {
-    accessToken: string;
-    bungieMembershipId: string;
-  }) {
-    return await getMembershipDataById(this.platformHttp(params.accessToken), {
-      membershipId: params.bungieMembershipId,
-      membershipType: -1,
-    }).then((res) => res.Response);
+  async getMembershipData(params: { accessToken: string }) {
+    return await getMembershipDataForCurrentUser(
+      this.platformHttp(params.accessToken)
+    ).then((res) => res.Response);
   }
 
   async getBasicProfile(params: {
@@ -142,28 +138,34 @@ export class BungieHttpClient {
     const workers = Array.from(
       { length: workerCount },
       () =>
-        new Promise<DestinyHistoricalStatsPeriodGroup[]>(async (resolve) => {
-          let hasMore = true;
-          const results: DestinyHistoricalStatsPeriodGroup[] = [];
+        new Promise<DestinyHistoricalStatsPeriodGroup[]>(
+          async (resolve, reject) => {
+            let hasMore = true;
+            const results: DestinyHistoricalStatsPeriodGroup[] = [];
 
-          while (hasMore) {
-            const page = pagesGenerator.next();
-            if (page.done) {
-              break;
+            try {
+              while (hasMore) {
+                const page = pagesGenerator.next();
+                if (page.done) {
+                  break;
+                }
+
+                const data = await getActivitiesForPage(page.value);
+
+                const inCalendarYear =
+                  data.activities?.filter(
+                    (a) => new Date(a.period).getFullYear() === 2024
+                  ) ?? [];
+                hasMore = inCalendarYear.length === count;
+                results.push(...inCalendarYear);
+              }
+            } catch (err) {
+              reject(err);
             }
 
-            const data = await getActivitiesForPage(page.value);
-
-            const inCalendarYear =
-              data.activities?.filter(
-                (a) => new Date(a.period).getFullYear() === 2024
-              ) ?? [];
-            hasMore = inCalendarYear.length === count;
-            results.push(...inCalendarYear);
+            resolve(results);
           }
-
-          resolve(results);
-        })
+        )
     );
 
     return await Promise.all(workers).then((arrs) =>
