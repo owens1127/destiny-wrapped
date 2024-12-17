@@ -29,7 +29,6 @@ export const CustomSessionProvider = ({
   return (
     <BungieSessionProvider
       initialSession={serverSession}
-      refreshPath="/api/auth/refresh"
       onError={(err, type) => {
         toast({
           title: `${type.charAt(0).toUpperCase() + type.slice(1)} Error`,
