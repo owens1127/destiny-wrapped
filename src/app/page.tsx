@@ -62,6 +62,7 @@ export default function Home() {
       membershipType={membershipQuery.data.membershipType}
       characterIds={charactersQuery.data.characterIds}
       fallback={<PageSkeleton />}
+      noActivities={<div className="text-center">{":("}</div>}
       render={(activities) => (
         <DestinyWrapped
           activities={activities}

@@ -18,6 +18,7 @@ export const ActivityWrapper = (props: {
       characterId: string;
     })[]
   ) => React.ReactNode;
+  noActivities: React.ReactNode;
 }) => {
   const { data, isSuccess, isError, error } = useActivityHistory({
     destinyMembershipId: props.destinyMembershipId,
@@ -37,6 +38,10 @@ export const ActivityWrapper = (props: {
   }, [toast, isError, error]);
 
   if (isSuccess) {
+    if (!data.length) {
+      return props.noActivities;
+    }
+
     return props.render(data);
   }
 

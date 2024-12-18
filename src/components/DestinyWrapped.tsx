@@ -39,10 +39,6 @@ export const DestinyWrapped = memo(
       pvePvpSplit,
     } = useWrappedStats(props.activities, props.characterMap);
 
-    if (!props.activities.length) {
-      return ":(";
-    }
-
     const topMode = topNModes(1)[0];
     const topTenActivities = topNActivitiesByPlaytime(10);
     const topActivity = topNActivitiesByPlaytime(1)[0];
