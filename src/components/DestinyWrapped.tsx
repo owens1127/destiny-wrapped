@@ -48,7 +48,7 @@ export const DestinyWrapped = memo(
         <h1 className="text-center text-2xl sm:text-4xl">
           Destiny Wrapped 2024
         </h1>
-        <div className="grid gap-8 grid-cols-1 my-8 mx-auto w-[92%] sm:w-[500] md:w-[600]">
+        <div className="grid gap-8 grid-cols-1 my-8 mx-auto w-[92%] sm:w-[500px] md:w-[600px]">
           <ModesCard topMode={topMode} totalStats={totalStats} idx={0} />
           <TopActivitiesCard topActivities={topTenActivities} idx={1} />
           <DedicationCard longestStreak={longestStreak} idx={2} />

@@ -10,7 +10,7 @@ import { ThemeButton } from "@/components/ThemeButton";
 import { AuthHeader } from "@/components/AuthHeader";
 import { ColorContextProvider } from "@/hooks/useColor";
 import { QueryClientProviderWrapper } from "@/components/QueryClientProviderWrapper";
-import Link from "next/link";
+import { Footer } from "@/components/Footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -55,29 +55,7 @@ export default async function RootLayout({
           </ColorContextProvider>
         </QueryClientProviderWrapper>
         <Toaster />
-        <footer>
-          <div className="flex justify-center p-4 text-sm text-gray-500 dark:text-gray-400">
-            <span>
-              Destiny Wrapped 2024 by{" "}
-              <Link
-                href="https://x.com/kneewoah"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Newo
-              </Link>
-            </span>
-            <span className="ml-4">
-              <Link
-                href="https://github.com/owens1127/destiny-wrapped"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Source
-              </Link>
-            </span>
-          </div>
-        </footer>
+        <Footer />
       </body>
     </html>
   );

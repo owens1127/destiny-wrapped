@@ -39,7 +39,7 @@ const ChallengeBlock = ({
     animate={{ opacity: 1, x: 0 }}
     transition={{ duration: 0.5 }}
   >
-    <h3 className="text-2xl font-bold mb-4">{title}</h3>
+    <h3 className="text-xl md:text-2xl font-bold mb-4">{title}</h3>
     <div className={isLeft ? "text-left" : "text-right"}>
       <p className="text-4xl font-bold">{stats.completed}</p>
       <p className="text-sm opacity-80 mt-[-0.5rem] mb-2">Completions</p>
