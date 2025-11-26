@@ -6,7 +6,7 @@ import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatHours } from "./utils";
 import { useColor } from "@/hooks/useColor";
 import { DestinyWrappedCard } from "../DestinyWrappedCard";
-import { monthNames } from "@/lib/maps";
+import { monthNames } from "@/lib/seasons";
 
 interface MonthData {
   id: number;
@@ -34,7 +34,7 @@ export function PopularMonthCard({
     100
   ).toFixed(2);
 
-  const date = new Date(2024, mostPopularMonth.id + 1, 0);
+  const date = new Date(2025, mostPopularMonth.id + 1, 0);
   const numDays = date.getDate();
   const dayOfWeek = (date.getDay() + 35 - (numDays - 1)) % 7;
 
@@ -43,9 +43,15 @@ export function PopularMonthCard({
   return (
     <DestinyWrappedCard className={`bg-gradient-to-br ${colorClass}`}>
       <CardHeader className="relative z-10">
-        <CardTitle className="text-4xl font-bold text-center text-white drop-shadow-lg">
-          Your were most active in this month
-        </CardTitle>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "spring", stiffness: 150 }}
+        >
+          <CardTitle className="text-4xl font-bold text-center text-white drop-shadow-lg">
+            The month you <i>grinded</i> the hardest
+          </CardTitle>
+        </motion.div>
       </CardHeader>
       <CardContent className="relative z-10 p-6 text-white">
         <motion.div
@@ -58,9 +64,9 @@ export function PopularMonthCard({
             <div className="month-header bg-white/20 p-4 text-center">
               <motion.h3
                 className="text-3xl font-bold"
-                initial={{ y: -20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
+                initial={{ y: -20, opacity: 0, scale: 0.8 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 120 }}
               >
                 {monthNames[mostPopularMonth.id]}
               </motion.h3>
@@ -88,7 +94,13 @@ export function PopularMonthCard({
                           0.75
                       })`,
                     }}
-                    transition={{ delay: 0.1 * (i % 7), duration: 0.3 }}
+                    transition={{
+                      delay: 0.1 * (i % 7),
+                      type: "spring",
+                      stiffness: 150,
+                      damping: 12,
+                    }}
+                    whileHover={{ scale: 1.1 }}
                   >
                     <span className="text-sm z-10">{i + 1}</span>
                   </motion.div>
@@ -103,15 +115,25 @@ export function PopularMonthCard({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.5 }}
         >
-          <p className="text-2xl font-bold">
+          <motion.p
+            className="text-2xl font-bold"
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
             {formatHours(mostPopularMonth.timePlayedSeconds)} played
-          </p>
+          </motion.p>
           <p className="text-xl">
-            <span className="font-semibold">{percentage}%</span> of your yearly
-            play time
+            <motion.span
+              className="font-semibold"
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 1, delay: 0.5 }}
+            >
+              {percentage}%
+            </motion.span>{" "}
+            of your yearly play time
           </p>
           <p className="text-lg opacity-80">
-            {mostPopularMonth.count} activities launched
+            {mostPopularMonth.count} activities completed
           </p>
         </motion.div>
       </CardContent>

@@ -1,26 +1,58 @@
+import { useMemo, useEffect, useState } from "react";
 import {
   DestinyActivityModeType,
   DestinyClass,
   DestinyHistoricalStatsPeriodGroup,
+  DestinyPostGameCarnageReportData,
 } from "bungie-net-core/models";
-import { useMemo } from "react";
+import { getPGCRs } from "@/lib/idb";
 import { activityModeNames } from "@/lib/modes";
 import { getSeason, seasonWeights } from "@/lib/seasons";
 import { new2025Challenges } from "@/lib/challenges";
 
-/**
- * This calculates a bunch of stats based on the activities the user has played.
- *
- * yes, it's a lot of code, but it's all just grouping and counting so it makes
- * sense to keep it all together for some minor performance gains.
- */
-export const useWrappedStats = (
+export const useEnhancedWrappedStats = (
   activities: (DestinyHistoricalStatsPeriodGroup & {
     characterId: string;
   })[],
   characterMap: Record<string, DestinyClass>
-) =>
-  useMemo(() => {
+) => {
+  const [pgcrData, setPgcrData] = useState<
+    Map<string, DestinyPostGameCarnageReportData>
+  >(new Map());
+  const [isLoadingPGCRs, setIsLoadingPGCRs] = useState(true);
+
+  useEffect(() => {
+    const loadPGCRs = async () => {
+      try {
+        setIsLoadingPGCRs(true);
+        const activityIds = activities.map((a) => a.activityDetails.instanceId);
+        const pgcrs = await getPGCRs(activityIds);
+        setPgcrData(pgcrs);
+      } catch (error) {
+        console.error("Failed to load PGCRs:", error);
+      } finally {
+        setIsLoadingPGCRs(false);
+      }
+    };
+
+    loadPGCRs();
+
+    // Listen for PGCR events to refresh data
+    const handlePGCRsChanged = () => {
+      loadPGCRs();
+    };
+
+    window.addEventListener("pgcrs-cleared", handlePGCRsChanged);
+    window.addEventListener("pgcrs-stored", handlePGCRsChanged);
+
+    return () => {
+      window.removeEventListener("pgcrs-cleared", handlePGCRsChanged);
+      window.removeEventListener("pgcrs-stored", handlePGCRsChanged);
+    };
+  }, [activities]);
+
+  return useMemo(() => {
+    // Base stats (always calculated)
     const groupedByMode = new Map<
       DestinyActivityModeType,
       DestinyHistoricalStatsPeriodGroup[]
@@ -78,14 +110,66 @@ export const useWrappedStats = (
     const gambitGames: DestinyHistoricalStatsPeriodGroup[] = [];
     const pvpGames: DestinyHistoricalStatsPeriodGroup[] = [];
 
+    // Enhanced stats (only calculated when PGCR data is available)
+    const fireteamStats = {
+      soloActivities: 0,
+      teamActivities: 0,
+      averageFireteamSize: 0,
+      mostCommonFireteamSize: 0,
+    };
+
+    const weaponKills = new Map<number, number>();
+    const pvpWeaponKills = new Map<number, number>();
+    const abilityStats = {
+      superKills: 0,
+      grenadeKills: 0,
+      meleeKills: 0,
+    };
+
+    const hourCounts = new Array(24).fill(0);
+    const dayOfWeekCounts = new Array(7).fill(0);
+    const fireteamSizeCounts = new Map<number, number>();
+    const teammateCounts = new Map<
+      string,
+      {
+        displayName: string;
+        membershipId: string;
+        count: number;
+        bungieGlobalDisplayNameCode?: number;
+      }
+    >();
+    const emblemCounts = new Map<number, number>();
+    const sixtySevenCounts = {
+      kills: 0,
+      assists: 0,
+      deaths: 0,
+    };
+
+    let activitiesWithPGCR = 0;
+
     activities.forEach((activity) => {
-      // total stats
+      // Base stats (always calculated)
       const timePlayedSeconds =
         activity.values["timePlayedSeconds"]?.basic.value ?? 0;
       totalStats.playTime += timePlayedSeconds;
-      totalStats.kills += activity.values["kills"]?.basic.value ?? 0;
-      totalStats.deaths += activity.values["deaths"]?.basic.value ?? 0;
-      totalStats.assists += activity.values["assists"]?.basic.value ?? 0;
+      const kills = activity.values["kills"]?.basic.value ?? 0;
+      const deaths = activity.values["deaths"]?.basic.value ?? 0;
+      const assists = activity.values["assists"]?.basic.value ?? 0;
+
+      totalStats.kills += kills;
+      totalStats.deaths += deaths;
+      totalStats.assists += assists;
+
+      // Track 67 meme moments - count occurrences
+      if (kills === 67) {
+        sixtySevenCounts.kills++;
+      }
+      if (assists === 67) {
+        sixtySevenCounts.assists++;
+      }
+      if (deaths === 67) {
+        sixtySevenCounts.deaths++;
+      }
 
       // Group by mode
       activity.activityDetails.modes.forEach((mode) => {
@@ -143,7 +227,9 @@ export const useWrappedStats = (
       }
 
       // new raid/dungeon activities - track by individual hash
-      const raidChallenge = new2025Challenges.raids.find((r) => r.hash === hash);
+      const raidChallenge = new2025Challenges.raids.find(
+        (r) => r.hash === hash
+      );
       const dungeonChallenge = new2025Challenges.dungeons.find(
         (d) => d.hash === hash
       );
@@ -213,8 +299,132 @@ export const useWrappedStats = (
           }
         }
       }
+
+      // Enhanced stats (only when PGCR data is available)
+      const pgcr = pgcrData.get(activity.activityDetails.instanceId);
+      if (pgcr) {
+        activitiesWithPGCR++;
+
+        // Fireteam stats
+        const entries = pgcr.entries || [];
+        const playerCount = entries.length;
+        fireteamSizeCounts.set(
+          playerCount,
+          (fireteamSizeCounts.get(playerCount) || 0) + 1
+        );
+
+        if (playerCount === 1) {
+          fireteamStats.soloActivities++;
+        } else {
+          fireteamStats.teamActivities++;
+        }
+
+        // Find current player's entry
+        const currentPlayerEntry = entries.find(
+          (entry) => entry.characterId === activity.characterId
+        );
+
+        // Track teammates (all other players in the activity)
+        entries.forEach((entry) => {
+          if (entry.characterId !== activity.characterId) {
+            const player = entry.player;
+            if (player && player.destinyUserInfo) {
+              const membershipId = player.destinyUserInfo.membershipId;
+              const displayName =
+                player.destinyUserInfo.bungieGlobalDisplayName ||
+                player.destinyUserInfo.displayName ||
+                "Unknown";
+              const bungieGlobalDisplayNameCode =
+                player.destinyUserInfo.bungieGlobalDisplayNameCode;
+
+              if (membershipId) {
+                const existing = teammateCounts.get(membershipId);
+                if (existing) {
+                  existing.count++;
+                } else {
+                  teammateCounts.set(membershipId, {
+                    displayName,
+                    membershipId,
+                    count: 1,
+                    bungieGlobalDisplayNameCode,
+                  });
+                }
+              }
+            }
+          }
+        });
+
+        if (currentPlayerEntry) {
+          // Track emblem usage
+          const emblemHash = currentPlayerEntry.player?.emblemHash;
+          if (emblemHash) {
+            emblemCounts.set(
+              emblemHash,
+              (emblemCounts.get(emblemHash) || 0) + 1
+            );
+          }
+
+          // Check if this is a PvP activity
+          const isPvP = activity.activityDetails.modes.includes(5);
+
+          // Weapon kills from extended stats
+          const extended = currentPlayerEntry.extended;
+          if (
+            extended?.weapons &&
+            Array.isArray(extended.weapons) &&
+            extended.weapons.length > 0
+          ) {
+            extended.weapons.forEach((weapon) => {
+              const weaponHash = weapon.referenceId;
+              if (!weaponHash) return;
+
+              // Check for kills in the weapon values
+              // The field name is "uniqueWeaponKills" based on the PGCR structure
+              const kills = weapon.values?.uniqueWeaponKills?.basic?.value || 0;
+              if (kills > 0) {
+                // Track all weapon kills
+                weaponKills.set(
+                  weaponHash,
+                  (weaponKills.get(weaponHash) || 0) + kills
+                );
+
+                // Track PvP weapon kills separately
+                if (isPvP) {
+                  pvpWeaponKills.set(
+                    weaponHash,
+                    (pvpWeaponKills.get(weaponHash) || 0) + kills
+                  );
+                }
+              }
+            });
+          }
+
+          // Ability kills from extended.values (not currentPlayerEntry.values)
+          const extendedValues = extended?.values || {};
+          if (extendedValues.weaponKillsSuper?.basic?.value) {
+            abilityStats.superKills +=
+              extendedValues.weaponKillsSuper.basic.value;
+          }
+          if (extendedValues.weaponKillsGrenade?.basic?.value) {
+            abilityStats.grenadeKills +=
+              extendedValues.weaponKillsGrenade.basic.value;
+          }
+          if (extendedValues.weaponKillsMelee?.basic?.value) {
+            abilityStats.meleeKills +=
+              extendedValues.weaponKillsMelee.basic.value;
+          }
+        }
+
+        // Time of day stats
+        const date = new Date(activity.period);
+        const hour = date.getHours();
+        const dayOfWeek = date.getDay();
+        hourCounts[hour]++;
+        dayOfWeekCounts[dayOfWeek]++;
+      }
     });
 
+    // Calculate base stats
     const sortedByTimeInMode = Array.from(groupedByPrimaryMode.entries())
       .sort(
         ([, a], [, b]) =>
@@ -256,6 +466,9 @@ export const useWrappedStats = (
 
     const topNActivitiesByPlaytime = (n: number) =>
       sortedByTimeInHash.slice(0, n);
+
+    const topNActivitiesByRuns = (n: number) =>
+      [...sortedByTimeInHash].sort((a, b) => b.count - a.count).slice(0, n);
 
     const [mostPopularMonthId, mostPopularMonthEntries] = Array.from(
       groupedByMonth.entries()
@@ -310,7 +523,84 @@ export const useWrappedStats = (
         entry.values["timePlayedSeconds"]?.basic.value ?? 0;
     });
 
+    // Calculate enhanced stats
+    if (activitiesWithPGCR > 0) {
+      let totalSize = 0;
+      fireteamSizeCounts.forEach((count, size) => {
+        totalSize += size * count;
+      });
+      fireteamStats.averageFireteamSize = totalSize / activitiesWithPGCR;
+
+      // Most common fireteam size
+      let maxCount = 0;
+      fireteamSizeCounts.forEach((count, size) => {
+        if (count > maxCount) {
+          maxCount = count;
+          fireteamStats.mostCommonFireteamSize = size;
+        }
+      });
+    }
+
+    // Top weapons (all activities)
+    const topWeapons = Array.from(weaponKills.entries())
+      .map(([hash, kills]) => ({ hash, kills }))
+      .sort((a, b) => b.kills - a.kills)
+      .slice(0, 10);
+
+    // Top PvP weapons
+    const topPvpWeapons = Array.from(pvpWeaponKills.entries())
+      .map(([hash, kills]) => ({ hash, kills }))
+      .sort((a, b) => b.kills - a.kills)
+      .slice(0, 10);
+
+    // Top teammates
+    const allTeammates = Array.from(teammateCounts.values());
+
+    const topTeammates = allTeammates
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10)
+      .map(
+        ({
+          displayName,
+          membershipId,
+          count,
+          bungieGlobalDisplayNameCode,
+        }) => ({
+          displayName,
+          membershipId,
+          activityCount: count,
+          bungieGlobalDisplayNameCode,
+        })
+      );
+
+    const totalTeammateCount = allTeammates.length;
+
+    // Top 3 emblems (most used)
+    const topEmblems = Array.from(emblemCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([hash, count]) => ({ hash, count }));
+
+    // Most active hour (default to 12 PM if no data)
+    const maxHourCount = Math.max(...hourCounts);
+    const mostActiveHour =
+      maxHourCount > 0 ? hourCounts.indexOf(maxHourCount) : 12;
+    const maxDayCount = Math.max(...dayOfWeekCounts);
+    const mostActiveDayOfWeek =
+      maxDayCount > 0 ? dayOfWeekCounts.indexOf(maxDayCount) : 0;
+
     return {
+      // Base stats (always available)
+      topNModes,
+      topNActivitiesByPlaytime,
+      topNActivitiesByRuns,
+      totalStats,
+      longestStreak: {
+        numDays: longestStreak.numDays,
+        activityCount: longestStreak.activityCount,
+        start: longestStreak.start!,
+        end: longestStreak.end!,
+      },
       mostPopularMonth: {
         id: mostPopularMonthId,
         count: mostPopularMonthEntries.length,
@@ -327,15 +617,6 @@ export const useWrappedStats = (
           (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
           0
         ),
-      },
-      topNModes,
-      topNActivitiesByPlaytime,
-      totalStats,
-      longestStreak: {
-        numDays: longestStreak.numDays,
-        activityCount: longestStreak.activityCount,
-        start: longestStreak.start!,
-        end: longestStreak.end!,
       },
       sortedClassEntries,
       newDungeonActivities: Object.fromEntries(
@@ -437,5 +718,34 @@ export const useWrappedStats = (
           (groupedByMode.get(7)?.length ?? 0) /
           (groupedByMode.get(5)?.length ?? 1),
       },
+      // Enhanced stats (always returned, but may be empty if no PGCR data)
+      fireteamStats,
+      weaponStats: {
+        weaponKills,
+        topWeapons,
+      },
+      pvpWeaponStats: {
+        weaponKills: pvpWeaponKills,
+        topWeapons: topPvpWeapons,
+      },
+      teammateStats: {
+        teammates: topTeammates,
+        totalCount: totalTeammateCount,
+      },
+      abilityStats,
+      timeOfDayStats: {
+        mostActiveHour,
+        mostActiveDayOfWeek,
+      },
+      favoriteEmblems: topEmblems.length > 0 ? topEmblems : null,
+      sixtySevenStats: {
+        counts: sixtySevenCounts,
+        totalKills: totalStats.kills,
+        totalAssists: totalStats.assists,
+        totalDeaths: totalStats.deaths,
+      },
+      hasPGCRData: pgcrData.size > 0,
+      isLoadingPGCRs,
     };
-  }, [activities, characterMap]);
+  }, [activities, characterMap, pgcrData, isLoadingPGCRs]);
+};

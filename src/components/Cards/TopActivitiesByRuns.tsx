@@ -15,15 +15,15 @@ interface Activity {
   timePlayedSeconds: number;
 }
 
-interface TopActivitiesCardProps {
+interface TopActivitiesByRunsCardProps {
   idx: number;
   topActivities: Activity[];
 }
 
-export function TopActivitiesCard({
+export function TopActivitiesByRunsCard({
   topActivities,
   idx,
-}: TopActivitiesCardProps) {
+}: TopActivitiesByRunsCardProps) {
   const getActivityDefinition = useGetActivityDefinition();
   const colorClass = useColor(idx);
 
@@ -72,7 +72,7 @@ export function TopActivitiesCard({
     });
 
     return Array.from(grouped.values())
-      .sort((a, b) => b.timePlayedSeconds - a.timePlayedSeconds)
+      .sort((a, b) => b.count - a.count) // Sort by runs, not time
       .slice(0, 7);
   }, [topActivities, getActivityDefinition]);
 
@@ -85,7 +85,7 @@ export function TopActivitiesCard({
           transition={{ type: "spring", stiffness: 150 }}
         >
           <CardTitle className="text-4xl font-bold text-center text-white drop-shadow-lg">
-            Your <i>home</i> away from home
+            Built muscle memory yet?
           </CardTitle>
         </motion.div>
       </CardHeader>

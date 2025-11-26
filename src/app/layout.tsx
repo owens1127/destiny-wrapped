@@ -23,8 +23,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Destiny Wrapped 2024",
-  description: "Check out your highlights from Destiny 2 in 2024",
+  title: "Destiny Wrapped 2025",
+  description: "Check out your highlights from Destiny 2 in 2025",
 };
 
 export default async function RootLayout({

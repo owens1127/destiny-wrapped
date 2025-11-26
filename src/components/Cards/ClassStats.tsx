@@ -6,15 +6,16 @@ import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatHours } from "./utils";
 import { useColor } from "@/hooks/useColor";
 import { DestinyWrappedCard } from "../DestinyWrappedCard";
-import { DestinyClass } from "bungie-net-core/models";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { DestinyClass } from "bungie-net-core/enums";
+import { DestinyClass as DestinyClassEnum } from "bungie-net-core/models";
+import { PieChart, Pie, Cell } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
-import { destinyClassName, destinyClassSvg } from "@/lib/maps";
+import { destinyClassName, destinyClassSvg } from "@/lib/classes";
 
 interface ClassStatsCardProps {
   idx: number;
   sortedClassEntries: (readonly [
-    DestinyClass,
+    DestinyClassEnum,
     {
       readonly count: number;
       readonly timePlayedSeconds: number;
@@ -23,11 +24,12 @@ interface ClassStatsCardProps {
   ])[];
 }
 
-const COLORS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-];
+// Class colors: Warlock = yellow, Titan = red, Hunter = blue
+const CLASS_COLORS: { [key: number]: string } = {
+  [DestinyClass.Warlock]: "#fbbf24", // yellow-400
+  [DestinyClass.Titan]: "#ef4444", // red-500
+  [DestinyClass.Hunter]: "#3b82f6", // blue-500
+};
 
 export function ClassStatsCard({
   sortedClassEntries,
@@ -45,12 +47,44 @@ export function ClassStatsCard({
   const [mostPlayedClass] = sortedClassEntries[0];
   const ClassIcon = destinyClassSvg[mostPlayedClass];
 
+  // Dynamic title based on the most played class
+  const getTitle = () => {
+    switch (mostPlayedClass) {
+      case DestinyClass.Titan:
+        return (
+          <>
+            You <i>punch</i> first, ask questions later
+          </>
+        );
+      case DestinyClass.Hunter:
+        return (
+          <>
+            You <i>danced</i> your way to victory
+          </>
+        );
+      case DestinyClass.Warlock:
+        return (
+          <>
+            You <i>floated</i> above the competition
+          </>
+        );
+      default:
+        return <>Guardian classes</>;
+    }
+  };
+
   return (
     <DestinyWrappedCard className={`bg-gradient-to-br ${colorClass}`}>
       <CardHeader className="relative z-10">
-        <CardTitle className="text-4xl font-bold text-center text-white drop-shadow-lg">
-          Your class choices say a lot about you
-        </CardTitle>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 150 }}
+        >
+          <CardTitle className="text-4xl font-bold text-center text-white drop-shadow-lg">
+            {getTitle()}
+          </CardTitle>
+        </motion.div>
       </CardHeader>
       <CardContent className="relative z-10 p-6 text-white">
         <motion.div
@@ -66,8 +100,11 @@ export function ClassStatsCard({
             </div>
             <div className="text-center text-md">was your favorite class</div>
           </div>
-          <ChartContainer config={{}} className="flex-1">
-            <ResponsiveContainer>
+          <div
+            className="flex-1 min-w-0"
+            style={{ width: "100%", height: "300px" }}
+          >
+            <ChartContainer config={{}} className="w-full h-full">
               <PieChart>
                 <Pie
                   data={pieData}
@@ -80,12 +117,15 @@ export function ClassStatsCard({
                   strokeWidth={1}
                 >
                   {pieData.map(({ classType }, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[classType]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={CLASS_COLORS[classType] || "#8884d8"}
+                    />
                   ))}
                 </Pie>
               </PieChart>
-            </ResponsiveContainer>
-          </ChartContainer>
+            </ChartContainer>
+          </div>
         </motion.div>
         <motion.div
           className="space-y-4 mt-8"
@@ -105,14 +145,31 @@ export function ClassStatsCard({
                 key={classType}
                 className="flex items-center justify-between space-x-4 bg-white/10 backdrop-blur-sm rounded-lg p-4"
                 variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  visible: { opacity: 1, y: 0 },
+                  hidden: { opacity: 0, scale: 0.8 },
+                  visible: {
+                    opacity: 1,
+                    scale: 1,
+                    transition: {
+                      type: "spring",
+                      stiffness: 100,
+                      damping: 10,
+                    },
+                  },
                 }}
+                whileHover={{ scale: 1.02 }}
               >
                 <div className="flex items-center space-x-4">
-                  <div
+                  <motion.div
                     className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: COLORS[classType] }}
+                    style={{
+                      backgroundColor: CLASS_COLORS[classType] || "#8884d8",
+                    }}
+                    animate={{ scale: [1, 1.15, 1] }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      repeatDelay: 2,
+                    }}
                   />
                   <div>
                     <h3 className="text-xl font-bold">

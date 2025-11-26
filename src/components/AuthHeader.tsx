@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useDestinyMembership } from "@/hooks/useDestinyMembership";
 import { useBungieSession } from "next-bungie-auth/client";
 import { Skeleton } from "./ui/skeleton";
+import { clearPGCRs } from "@/lib/idb";
 
 export const AuthHeader = () => {
   const session = useBungieSession();
@@ -21,7 +22,13 @@ export const AuthHeader = () => {
       )}
       <Button
         disabled={session.isPending}
-        onClick={() => {
+        onClick={async () => {
+          // Clear the database before signing out
+          try {
+            await clearPGCRs();
+          } catch (error) {
+            console.error("Failed to clear database on sign out:", error);
+          }
           session.kill();
         }}
       >

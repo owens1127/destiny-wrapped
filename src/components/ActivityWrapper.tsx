@@ -31,7 +31,9 @@ export const ActivityWrapper = (props: {
     if (isError) {
       toast({
         title: "Error fetching activity history",
-        description: error!.message,
+        description:
+          error?.message ||
+          "Failed to load your activity history. Please try refreshing the page.",
         variant: "destructive",
       });
     }

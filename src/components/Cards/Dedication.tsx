@@ -25,42 +25,72 @@ export function DedicationCard({ longestStreak, idx }: DedicationCardProps) {
   return (
     <DestinyWrappedCard className={`bg-gradient-to-br ${colorClass}`}>
       <CardHeader className="relative z-10">
-        <CardTitle className="text-4xl font-bold text-center text-white drop-shadow-lg">
-          You got a bit streaky
-        </CardTitle>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 150 }}
+        >
+          <CardTitle className="text-4xl font-bold text-center text-white drop-shadow-lg">
+            Gettin&apos; <i>streaky</i> with it
+          </CardTitle>
+        </motion.div>
       </CardHeader>
-      <CardContent className="relative z-10 flex flex-col items-center justify-center p-6 text-white">
+      <CardContent className="relative z-10 p-6 text-white">
+        {/* Hero section with large number */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-4"
+          transition={{ type: "spring", stiffness: 150, delay: 0.1 }}
+          className="text-center mb-6"
         >
-          <p className="text-xl mb-4">Your longest streak was</p>
-          <h3 className="text-6xl font-bold mb-2">{longestStreak.numDays}</h3>
-          <p className="text-2xl">days in a row</p>
+          <p className="text-lg opacity-80 mb-2">Your longest streak</p>
+          <motion.h3
+            className="text-7xl md:text-8xl font-bold mb-2"
+            animate={{
+              scale: [1, 1.05, 1],
+            }}
+            transition={{ duration: 0.6, delay: 0.3, type: "spring" }}
+          >
+            {longestStreak.numDays}
+          </motion.h3>
+          <p className="text-3xl font-semibold">days straight</p>
         </motion.div>
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="text-2xl text-center mb-8 bg-white/10 p-4"
-        >
-          {format(longestStreak.start, "MMM d")} -{" "}
-          {format(longestStreak.end, "MMM d, yyyy")}
-        </motion.p>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="text-center mb-8"
-        >
-          <p className="text-xl mb-2">Which included</p>
-          <h4 className="text-4xl font-semibold mb-2">
-            {longestStreak.activityCount}
-          </h4>
-          <p className="text-xl">activities</p>
-        </motion.div>
+
+        {/* Split layout for dates and activities */}
+        <div className="grid grid-cols-2 gap-4">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ type: "spring", stiffness: 120, delay: 0.4 }}
+            className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center"
+          >
+            <p className="text-sm opacity-80 mb-2">From</p>
+            <p className="text-xl font-bold">
+              {format(longestStreak.start, "MMM d")}
+            </p>
+            <p className="text-sm opacity-80 mt-2">to</p>
+            <p className="text-xl font-bold">
+              {format(longestStreak.end, "MMM d")}
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ type: "spring", stiffness: 120, delay: 0.5 }}
+            className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center"
+          >
+            <p className="text-sm opacity-80 mb-2">Activities</p>
+            <motion.h4
+              className="text-4xl font-bold"
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 0.5, delay: 0.8 }}
+            >
+              {longestStreak.activityCount}
+            </motion.h4>
+            <p className="text-sm opacity-80 mt-2">completed</p>
+          </motion.div>
+        </div>
       </CardContent>
     </DestinyWrappedCard>
   );

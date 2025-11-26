@@ -6,7 +6,11 @@ import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useColor } from "@/hooks/useColor";
 import { DestinyWrappedCard } from "../DestinyWrappedCard";
 import { useGetActivityDefinition } from "@/hooks/useGetActivityDefinition";
+import { useGetItemDefinition } from "@/hooks/useGetItemDefinition";
 import Image from "next/image";
+import {
+  DestinyHistoricalStatsPeriodGroup,
+} from "bungie-net-core/models";
 
 interface SummaryCardProps {
   idx: number;
@@ -22,11 +26,26 @@ interface SummaryCardProps {
   };
   topMode: {
     mode: number;
+    count: number;
   };
   pvePvpSplit: {
     ratio: number;
   };
   activityModeNames: Record<number, string>;
+  topWeapon?: {
+    hash: number;
+    kills: number;
+  } | null;
+  bestFriend?: {
+    displayName: string;
+    membershipId: string;
+    activityCount: number;
+    bungieGlobalDisplayNameCode?: number;
+  } | null;
+  hasPGCRData: boolean;
+  activities: (DestinyHistoricalStatsPeriodGroup & {
+    characterId: string;
+  })[];
 }
 
 export function SummaryCard({
@@ -37,9 +56,56 @@ export function SummaryCard({
   topMode,
   pvePvpSplit,
   activityModeNames,
+  topWeapon,
+  bestFriend,
+  hasPGCRData,
+  activities,
 }: SummaryCardProps) {
   const colorClass = useColor(idx);
   const getActivityDefinition = useGetActivityDefinition();
+  const getItemDefinition = useGetItemDefinition();
+
+  const teamHashtag = useMemo(() => {
+    const minesActivities = activities.filter((activity) => {
+      const activityDef = getActivityDefinition(activity.activityDetails?.referenceId ?? 0);
+      const activityName = activityDef?.displayProperties.name ?? "";
+      const baseName = activityName.split(":")[0].trim();
+      
+      return (
+        baseName.toLowerCase().includes("caldera") ||
+        baseName.toLowerCase().includes("k1 logistics")
+      );
+    });
+
+    if (minesActivities.length === 0) {
+      return null;
+    }
+
+    const calderaCount = minesActivities.filter((activity) => {
+      const activityDef = getActivityDefinition(activity.activityDetails?.referenceId ?? 0);
+      const activityName = activityDef?.displayProperties.name ?? "";
+      const baseName = activityName.split(":")[0].trim();
+      return baseName.toLowerCase().includes("caldera");
+    }).length;
+
+    const k1Count = minesActivities.filter((activity) => {
+      const activityDef = getActivityDefinition(activity.activityDetails?.referenceId ?? 0);
+      const activityName = activityDef?.displayProperties.name ?? "";
+      const baseName = activityName.split(":")[0].trim();
+      return baseName.toLowerCase().includes("k1 logistics");
+    }).length;
+
+    if (calderaCount > k1Count) {
+      return "#TeamCaldera";
+    } else if (k1Count > calderaCount) {
+      return "#TeamK1";
+    } else if (calderaCount > 0 || k1Count > 0) {
+      // If tied, default to Caldera
+      return "#TeamCaldera";
+    }
+
+    return null;
+  }, [activities, getActivityDefinition]);
 
   const getPvePvpSplit = useMemo(() => {
     if (pvePvpSplit.ratio >= 1.05) {
@@ -73,126 +139,337 @@ export function SummaryCard({
   }, [pvePvpSplit.ratio]);
 
   return (
-    <DestinyWrappedCard className={`bg-gradient-to-br ${colorClass}`}>
-      <CardHeader className="relative z-10">
-        <CardTitle className="text-4xl font-bold text-center text-white drop-shadow-lg">
-          <div className="text-2xl font-normal">
-            <i>Destiny 2:</i> Wrapped, 2024
-          </div>
-          <h4>{displayName}</h4>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="relative z-10 flex flex-col items-center justify-center p-6 pt-0 text-white">
+    <DestinyWrappedCard className={`bg-gradient-to-br ${colorClass} relative`}>
+      {/* Team Hashtag - top left of entire card, slanted */}
+      {teamHashtag && (
         <motion.div
-          className="grid grid-cols-2 gap-x-6 gap-y-4 w-full mb-4"
-          initial="hidden"
-          animate="visible"
-          variants={{
-            visible: {
-              transition: {
-                staggerChildren: 0.1,
-              },
-            },
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ 
+            opacity: 1, 
+            scale: 1,
+            rotate: -12,
           }}
+          transition={{ 
+            opacity: { type: "spring", delay: 0.9 },
+            scale: { type: "spring", delay: 0.9 },
+            rotate: { type: "spring", delay: 0.9 },
+          }}
+          className="absolute top-2 left-2 bg-gradient-to-br from-yellow-400/20 to-orange-500/20 backdrop-blur-md rounded-xl p-1.5 text-center shadow-2xl border-2 border-yellow-400/30 z-30"
+          style={{ transform: "rotate(-12deg)" }}
         >
-          <BubbledStat
-            idx={idx + 1}
-            value={Math.round(totalStats.playTime / 3600).toLocaleString()}
-            label="Hours"
-          />
-          <BubbledStat
-            idx={idx + 3}
-            value={totalStats.count.toLocaleString()}
-            label="Activities"
-          />
-          <BubbledStat
-            idx={idx + 4}
-            value={totalStats.kills.toLocaleString()}
-            label="Kills"
-          />
-          <BubbledStat
-            idx={idx + 2}
-            value={totalStats.deaths.toLocaleString()}
-            label="Deaths"
-          />
+          <motion.div
+            className="text-sm font-black text-yellow-300 drop-shadow-lg"
+            animate={{ 
+              scale: [1, 1.05, 1],
+            }}
+            transition={{ 
+              duration: 3, 
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          >
+            {teamHashtag}
+          </motion.div>
         </motion.div>
+      )}
+      <CardHeader className="relative z-10">
         <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: [1.2, 1] }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="flex justify-around items-center mb-4 w-full"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "spring", stiffness: 150 }}
         >
-          <div className="text-center">
-            <div className="text-md">Played</div>
-            <div className="text-6xl font-bold mb-2">
-              {getPvePvpSplit.value}
-            </div>
-            <div className="text-md">{getPvePvpSplit.bottom}</div>
-          </div>
-          <div className="text-center">
-            <div className="text-m mb-2">Favorite category</div>
-            <div className="text-5xl font-bold">
+          <CardTitle className="text-4xl font-bold text-center text-white drop-shadow-lg">
+            <motion.div 
+              className="text-2xl font-normal"
+              animate={{ scale: [1, 1.02, 1] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <i>Destiny 2:</i> Wrapped, 2025
+            </motion.div>
+            <motion.h4
+              initial={{ y: -10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2, type: "spring" }}
+            >
+              {displayName}
+            </motion.h4>
+          </CardTitle>
+        </motion.div>
+      </CardHeader>
+      <CardContent className="relative z-10 p-4 sm:p-6 pt-0 text-white min-h-[400px]">
+        {/* Free-floating stats container */}
+        <div className="relative w-full h-full min-h-[350px] mb-4">
+          {/* Total Hours - top left */}
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.5 }}
+            animate={{ 
+              opacity: 1, 
+              scale: 1,
+              y: [0, -8, 0],
+            }}
+            transition={{ 
+              opacity: { type: "spring", delay: 0.1 },
+              scale: { type: "spring", delay: 0.1 },
+              y: { duration: 12, repeat: Infinity, ease: "easeInOut", delay: 0.1 }
+            }}
+            className="absolute -top-2 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
+            style={{ width: "140px", left: "8px" }}
+          >
+            <p className="text-xs opacity-80 mb-1">Total Hours</p>
+            <motion.div
+              className="text-3xl font-bold"
+              animate={{ scale: [1, 1.02, 1] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            >
+              {Math.round(totalStats.playTime / 3600).toLocaleString()}
+            </motion.div>
+          </motion.div>
+
+          {/* Activities - top right */}
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.5 }}
+            animate={{ 
+              opacity: 1, 
+              scale: 1,
+              y: [0, -10, 0],
+            }}
+            transition={{ 
+              opacity: { type: "spring", delay: 0.2 },
+              scale: { type: "spring", delay: 0.2 },
+              y: { duration: 14, repeat: Infinity, ease: "easeInOut", delay: 0.2 }
+            }}
+            className="absolute top-0 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
+            style={{ width: "140px", right: "-8px" }}
+          >
+            <p className="text-xs opacity-80 mb-1">Activities</p>
+            <motion.div
+              className="text-3xl font-bold"
+              animate={{ scale: [1, 1.02, 1] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
+            >
+              {totalStats.count.toLocaleString()}
+            </motion.div>
+          </motion.div>
+
+          {/* Best Friend - left center (if available) */}
+          {hasPGCRData && bestFriend && (
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.5 }}
+              animate={{ 
+                opacity: 1, 
+                scale: 1,
+                y: [0, -12, 0],
+              }}
+              transition={{ 
+                opacity: { type: "spring", delay: 0.3 },
+                scale: { type: "spring", delay: 0.3 },
+                y: { duration: 16, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
+              }}
+              className="absolute top-1/2 -translate-y-1/2 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
+              style={{ width: "160px", left: "12px" }}
+            >
+              <p className="text-xs opacity-80 mb-1">Best Friend</p>
+              <motion.div
+                className="text-xl font-bold mb-1"
+                animate={{ scale: [1, 1.02, 1] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              >
+                {bestFriend.displayName}
+                {bestFriend.bungieGlobalDisplayNameCode !== undefined && (
+                  <span className="text-sm font-normal opacity-70">
+                    #{bestFriend.bungieGlobalDisplayNameCode}
+                  </span>
+                )}
+              </motion.div>
+              <p className="text-xs opacity-80">
+                {bestFriend.activityCount} activities together
+              </p>
+            </motion.div>
+          )}
+
+          {/* Favorite Category - between Total Hours and PvE/PvP Split */}
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.5 }}
+            animate={{ 
+              opacity: 1, 
+              scale: 1,
+              y: [0, -9, 0],
+            }}
+            transition={{ 
+              opacity: { type: "spring", delay: 0.4 },
+              scale: { type: "spring", delay: 0.4 },
+              y: { duration: 12.8, repeat: Infinity, ease: "easeInOut", delay: 0.6 }
+            }}
+            className="absolute top-[25%] bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
+            style={{ width: "150px", left: "-4px" }}
+          >
+            <p className="text-xs opacity-80 mb-1">Favorite Category</p>
+            <motion.div
+              className="text-2xl font-bold mb-1"
+              animate={{ scale: [1, 1.02, 1] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            >
               {activityModeNames[topMode.mode]}
+            </motion.div>
+            <p className="text-xs opacity-80">
+              {topMode.count.toLocaleString()} {topMode.count === 1 ? "attempt" : "attempts"}
+            </p>
+          </motion.div>
+
+          {/* Kills - bottom left */}
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.5 }}
+            animate={{ 
+              opacity: 1, 
+              scale: 1,
+              y: [0, -11, 0],
+            }}
+            transition={{ 
+              opacity: { type: "spring", delay: 0.5 },
+              scale: { type: "spring", delay: 0.5 },
+              y: { duration: 15.2, repeat: Infinity, ease: "easeInOut", delay: 0.3 }
+            }}
+            className="absolute bottom-0 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
+            style={{ width: "130px", left: "6px" }}
+          >
+            <p className="text-xs opacity-80 mb-1">Kills</p>
+            <motion.div
+              className="text-2xl font-bold"
+              animate={{ scale: [1, 1.02, 1] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
+            >
+              {totalStats.kills.toLocaleString()}
+            </motion.div>
+          </motion.div>
+
+          {/* Deaths - bottom right */}
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.5 }}
+            animate={{ 
+              opacity: 1, 
+              scale: 1,
+              y: [0, -7, 0],
+            }}
+            transition={{ 
+              opacity: { type: "spring", delay: 0.6 },
+              scale: { type: "spring", delay: 0.6 },
+              y: { duration: 13.2, repeat: Infinity, ease: "easeInOut", delay: 0.5 }
+            }}
+            className="absolute bottom-0 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
+            style={{ width: "130px", right: "-6px" }}
+          >
+            <p className="text-xs opacity-80 mb-1">Deaths</p>
+            <motion.div
+              className="text-2xl font-bold"
+              animate={{ scale: [1, 1.02, 1] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
+            >
+              {totalStats.deaths.toLocaleString()}
+            </motion.div>
+          </motion.div>
+
+          {/* Top Weapon - center top (if available) */}
+          {hasPGCRData && topWeapon && (
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.5 }}
+              animate={{ 
+                opacity: 1, 
+                scale: 1,
+                y: [0, -10, 0],
+              }}
+              transition={{ 
+                opacity: { type: "spring", delay: 0.7 },
+                scale: { type: "spring", delay: 0.7 },
+                y: { duration: 14.4, repeat: Infinity, ease: "easeInOut", delay: 0.1 }
+              }}
+              className="absolute top-[20%] left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
+              style={{ width: "180px" }}
+            >
+              <p className="text-xs opacity-80 mb-1">Top Weapon</p>
+              <motion.div
+                className="text-xl font-bold"
+                animate={{ scale: [1, 1.02, 1] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              >
+                {getItemDefinition(topWeapon.hash)?.displayProperties.name ||
+                  "Unknown"}
+              </motion.div>
+              <p className="text-xs opacity-80 mt-1">
+                {topWeapon.kills.toLocaleString()} kills
+              </p>
+            </motion.div>
+          )}
+
+          {/* PvE/PvP Split - center bottom */}
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.5 }}
+            animate={{ 
+              opacity: 1, 
+              scale: 1,
+              y: [0, -8, 0],
+            }}
+            transition={{ 
+              opacity: { type: "spring", delay: 0.8 },
+              scale: { type: "spring", delay: 0.8 },
+              y: { duration: 13.6, repeat: Infinity, ease: "easeInOut", delay: 0.7 }
+            }}
+            className="absolute bottom-1/4 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
+            style={{ width: "180px" }}
+          >
+            <p className="text-xs opacity-80 mb-1">Played</p>
+            <motion.div
+              className="text-4xl font-bold mb-1"
+              animate={{ scale: [1, 1.02, 1] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            >
+              {getPvePvpSplit.value}
+            </motion.div>
+            <p className="text-sm">{getPvePvpSplit.bottom}</p>
+          </motion.div>
+
             </div>
-          </div>
-        </motion.div>
+
+        {/* Favorite activity image - full width */}
         <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: [1.2, 1] }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="text-center relative aspect-w-16 aspect-h-9 min-w-full"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "spring", delay: 0.7 }}
+          className="relative w-full rounded-lg overflow-hidden"
         >
           <Image
-            className="rounded-lg"
+            className="w-full h-auto"
             src={
               "https://www.bungie.net" +
               (getActivityDefinition(topActivity.hash)?.pgcrImage ?? "")
             }
-            width={400}
-            height={225}
+            width={600}
+            height={338}
             alt={
-              getActivityDefinition(topActivity.hash)?.displayProperties.name ??
-              ""
+              getActivityDefinition(topActivity.hash)?.displayProperties.name
+                ?.split(":")[0].trim() ?? ""
             }
+            unoptimized
           />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-black bg-opacity-75 text-white text-lg py-3 w-full">
-              Favorite activity
-              <br />
-              <div className="text-2xl font-semibold italic">
-                {
-                  getActivityDefinition(topActivity.hash)?.displayProperties
-                    .name
-                }
-              </div>
-            </div>
-          </div>
+          <motion.div
+            className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.9 }}
+          >
+            <p className="text-sm opacity-80 mb-1">Your favorite activity</p>
+            <motion.div
+              className="text-2xl font-bold"
+              animate={{ scale: [1, 1.02, 1] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            >
+              {
+                getActivityDefinition(topActivity.hash)?.displayProperties.name
+                  ?.split(":")[0].trim() ?? "Unknown"
+              }
+            </motion.div>
+          </motion.div>
         </motion.div>
       </CardContent>
     </DestinyWrappedCard>
   );
 }
-
-const BubbledStat = ({
-  value,
-  label,
-  idx,
-}: {
-  value: string | number;
-  label: string;
-  idx: number;
-}) => {
-  const colorClass = useColor(idx);
-  return (
-    <motion.div
-      variants={{
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0 },
-      }}
-      className={`text-center rounded-md px-4 py-2 bg-gradient-to-b ${colorClass} drop-shadow-2xl`}
-    >
-      <div className="text-md font-medium mb-1">{label}</div>
-      <div className="text-2xl font-bold">{value}</div>
-    </motion.div>
-  );
-};
