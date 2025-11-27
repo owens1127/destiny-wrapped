@@ -26,6 +26,21 @@ export function useWrappedStats(
 ) {
   const { pgcrData, isLoadingPGCRs } = usePGCRData(activities);
   return useMemo(() => {
+    // First, verify and deduplicate input activities by instanceId
+    // This is a safety check in case useActivityHistory didn't fully deduplicate
+    const inputDeduplication = new Map<
+      string,
+      DestinyHistoricalStatsPeriodGroup & { characterId: string }
+    >();
+    activities.forEach((activity) => {
+      const instanceId = activity.activityDetails.instanceId;
+      // Keep the first occurrence of each instanceId
+      if (!inputDeduplication.has(instanceId)) {
+        inputDeduplication.set(instanceId, activity);
+      }
+    });
+    const deduplicatedInput = Array.from(inputDeduplication.values());
+
     // Group activities by instanceId, tracking all characters that played each instance
     // This allows us to count stats once per instance but include all classes for class grouping
     const activitiesByInstance = new Map<
@@ -36,7 +51,7 @@ export function useWrappedStats(
       }
     >();
 
-    activities.forEach((activity) => {
+    deduplicatedInput.forEach((activity) => {
       const instanceId = activity.activityDetails.instanceId;
       const existing = activitiesByInstance.get(instanceId);
       if (existing) {
@@ -84,25 +99,33 @@ export function useWrappedStats(
       (activity) => activity.activityDetails.directorActivityHash
     );
 
-    // For class grouping, include activity for each class that played it
+    // For class grouping, assign each activity instance to exactly one class
+    // Note: useActivityHistory already deduplicates by instanceId, but we add this check
+    // as a safety measure and to ensure correct character assignment for class stats.
+    // Each instance should only be counted once, assigned to the class of the character in the activity record.
+    // This ensures class times add up to total playtime (no double-counting).
     const groupedByClass = new Map<
       DestinyClass,
       (DestinyHistoricalStatsPeriodGroup & { characterId: string })[]
     >();
+    const seenInstanceIds = new Set<string>();
+
     filteredActivities.forEach((activity) => {
       const instanceId = activity.activityDetails.instanceId;
-      const instanceData = activitiesByInstance.get(instanceId);
-      if (instanceData) {
-        // Add this activity to each class that played it
-        instanceData.characterIds.forEach((charId) => {
-          const charClass = characterMap[charId] ?? 3;
-          const existing = groupedByClass.get(charClass);
-          if (existing) {
-            existing.push(activity);
-          } else {
-            groupedByClass.set(charClass, [activity]);
-          }
-        });
+
+      // Safety check: only count each instance once (should already be deduplicated by useActivityHistory)
+      if (seenInstanceIds.has(instanceId)) {
+        return;
+      }
+      seenInstanceIds.add(instanceId);
+
+      // Assign to the class of the character in this activity record
+      const charClass = characterMap[activity.characterId] ?? 3;
+      const existing = groupedByClass.get(charClass);
+      if (existing) {
+        existing.push(activity);
+      } else {
+        groupedByClass.set(charClass, [activity]);
       }
     });
 
@@ -426,36 +449,36 @@ export function useWrappedStats(
 
           // Track teammates (only once per instance, using first character's perspective)
           if (charId === activity.characterId) {
-        entries.forEach((entry) => {
-            const player = entry.player;
-            if (player && player.destinyUserInfo) {
-              const membershipId = player.destinyUserInfo.membershipId;
+            entries.forEach((entry) => {
+              const player = entry.player;
+              if (player && player.destinyUserInfo) {
+                const membershipId = player.destinyUserInfo.membershipId;
 
                 // Filter out current player by membershipId
                 if (membershipId !== playerMembershipId) {
-              const displayName =
-                player.destinyUserInfo.bungieGlobalDisplayName ||
-                player.destinyUserInfo.displayName ||
-                "Unknown";
-              const bungieGlobalDisplayNameCode =
-                player.destinyUserInfo.bungieGlobalDisplayNameCode;
+                  const displayName =
+                    player.destinyUserInfo.bungieGlobalDisplayName ||
+                    player.destinyUserInfo.displayName ||
+                    "Unknown";
+                  const bungieGlobalDisplayNameCode =
+                    player.destinyUserInfo.bungieGlobalDisplayNameCode;
 
-              if (membershipId) {
-                const existing = teammateCounts.get(membershipId);
-                if (existing) {
-                  existing.count++;
-                } else {
-                  teammateCounts.set(membershipId, {
-                    displayName,
-                    membershipId,
-                    count: 1,
-                    bungieGlobalDisplayNameCode,
-                  });
+                  if (membershipId) {
+                    const existing = teammateCounts.get(membershipId);
+                    if (existing) {
+                      existing.count++;
+                    } else {
+                      teammateCounts.set(membershipId, {
+                        displayName,
+                        membershipId,
+                        count: 1,
+                        bungieGlobalDisplayNameCode,
+                      });
+                    }
+                  }
                 }
               }
-            }
-          }
-        });
+            });
           }
 
           // Process character-specific data (emblems, weapon kills, etc.)
@@ -635,16 +658,29 @@ export function useWrappedStats(
         a.reduce((acc, e) => acc + getActivityValue(e, "timePlayedSeconds"), 0)
     )[0] ?? [11, []];
 
+    // Calculate class stats - ensure we're using deduplicated activities
     const sortedClassEntries = Array.from(groupedByClass.entries())
       .map(([classType, activities]) => {
-        const timePlayedSeconds = activities.reduce(
+        // Double-check: ensure no duplicate instances in this class's activities
+        const uniqueActivities = new Map<string, (typeof activities)[0]>();
+        activities.forEach((activity) => {
+          const instanceId = activity.activityDetails.instanceId;
+          if (!uniqueActivities.has(instanceId)) {
+            uniqueActivities.set(instanceId, activity);
+          }
+        });
+
+        const deduplicatedClassActivities = Array.from(
+          uniqueActivities.values()
+        );
+        const timePlayedSeconds = deduplicatedClassActivities.reduce(
           (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
           0
         );
         return [
           classType,
           {
-            count: activities.length,
+            count: deduplicatedClassActivities.length,
             timePlayedSeconds,
             percentTimePlayed: (100 * timePlayedSeconds) / totalStats.playTime,
           },
