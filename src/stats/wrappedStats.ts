@@ -27,7 +27,9 @@ export function useWrappedStats(
   const { pgcrData, isLoadingPGCRs } = usePGCRData(activities);
   return useMemo(() => {
     // Filter out activities with more than 18 players
-    const filteredActivities = activities.filter((activity) => {
+    const filteredActivities: (DestinyHistoricalStatsPeriodGroup & {
+      characterId: string;
+    })[] = activities.filter((activity) => {
       const pgcr = pgcrData.get(activity.activityDetails.instanceId);
       if (pgcr) {
         const playerCount = pgcr.entries?.length || 0;
@@ -143,7 +145,20 @@ export function useWrappedStats(
       weaponKillsAbility: 0,
     };
     const sixtySevenActivities: Array<{
-      type: "kills" | "assists" | "deaths" | "precisionKills" | "opponentsDefeated" | "score" | "orbsDropped" | "orbsGathered" | "standing" | "weaponKillsGrenade" | "weaponKillsMelee" | "weaponKillsSuper" | "weaponKillsAbility";
+      type:
+        | "kills"
+        | "assists"
+        | "deaths"
+        | "precisionKills"
+        | "opponentsDefeated"
+        | "score"
+        | "orbsDropped"
+        | "orbsGathered"
+        | "standing"
+        | "weaponKillsGrenade"
+        | "weaponKillsMelee"
+        | "weaponKillsSuper"
+        | "weaponKillsAbility";
       activity: DestinyHistoricalStatsPeriodGroup & { characterId: string };
     }> = [];
 
@@ -243,7 +258,9 @@ export function useWrappedStats(
       }
 
       // Track raids and dungeons
-      const raidChallenge = new2025Challenges.raids.find((r) => r.hash === hash);
+      const raidChallenge = new2025Challenges.raids.find(
+        (r) => r.hash === hash
+      );
       const dungeonChallenge = new2025Challenges.dungeons.find(
         (d) => d.hash === hash
       );
@@ -322,7 +339,7 @@ export function useWrappedStats(
         const entries = pgcr.entries || [];
         const playerCount = entries.length;
         const timePlayed = getActivityValue(activity, "timePlayedSeconds");
-        
+
         fireteamSizeCounts.set(
           playerCount,
           (fireteamSizeCounts.get(playerCount) || 0) + 1
@@ -335,7 +352,7 @@ export function useWrappedStats(
           fireteamStats.teamActivities++;
           fireteamStats.teamTimePlayed += timePlayed;
         }
-        
+
         if (playerCount > fireteamStats.largestFireteamSize) {
           fireteamStats.largestFireteamSize = playerCount;
         }
@@ -379,13 +396,18 @@ export function useWrappedStats(
           // Check 67 moments from extended stats
           if (currentPlayerEntry.extended?.values) {
             const extendedValues = currentPlayerEntry.extended.values;
-            const precisionKills = extendedValues.precisionKills?.basic?.value ?? 0;
+            const precisionKills =
+              extendedValues.precisionKills?.basic?.value ?? 0;
             const orbsDropped = extendedValues.orbsDropped?.basic?.value ?? 0;
             const orbsGathered = extendedValues.orbsGathered?.basic?.value ?? 0;
-            const weaponKillsGrenade = extendedValues.weaponKillsGrenade?.basic?.value ?? 0;
-            const weaponKillsMelee = extendedValues.weaponKillsMelee?.basic?.value ?? 0;
-            const weaponKillsSuper = extendedValues.weaponKillsSuper?.basic?.value ?? 0;
-            const weaponKillsAbility = extendedValues.weaponKillsAbility?.basic?.value ?? 0;
+            const weaponKillsGrenade =
+              extendedValues.weaponKillsGrenade?.basic?.value ?? 0;
+            const weaponKillsMelee =
+              extendedValues.weaponKillsMelee?.basic?.value ?? 0;
+            const weaponKillsSuper =
+              extendedValues.weaponKillsSuper?.basic?.value ?? 0;
+            const weaponKillsAbility =
+              extendedValues.weaponKillsAbility?.basic?.value ?? 0;
 
             if (precisionKills === 67) {
               sixtySevenCounts.precisionKills++;
@@ -401,7 +423,10 @@ export function useWrappedStats(
             }
             if (weaponKillsGrenade === 67) {
               sixtySevenCounts.weaponKillsGrenade++;
-              sixtySevenActivities.push({ type: "weaponKillsGrenade", activity });
+              sixtySevenActivities.push({
+                type: "weaponKillsGrenade",
+                activity,
+              });
             }
             if (weaponKillsMelee === 67) {
               sixtySevenCounts.weaponKillsMelee++;
@@ -413,7 +438,10 @@ export function useWrappedStats(
             }
             if (weaponKillsAbility === 67) {
               sixtySevenCounts.weaponKillsAbility++;
-              sixtySevenActivities.push({ type: "weaponKillsAbility", activity });
+              sixtySevenActivities.push({
+                type: "weaponKillsAbility",
+                activity,
+              });
             }
           }
 
@@ -538,10 +566,7 @@ export function useWrappedStats(
           (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
           0
         ) -
-        a.reduce(
-          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
-          0
-        )
+        a.reduce((acc, e) => acc + getActivityValue(e, "timePlayedSeconds"), 0)
     )[0] ?? [11, []];
 
     const sortedClassEntries = Array.from(groupedByClass.entries())
@@ -645,28 +670,32 @@ export function useWrappedStats(
     const maxDayTime = Math.max(...dayOfWeekTimePlayed);
     const mostActiveDayOfWeek =
       maxDayTime > 0 ? dayOfWeekTimePlayed.indexOf(maxDayTime) : 0;
-    
+
     // Least active hour and day (by time played)
-    const minHourTime = Math.min(...hourTimePlayed.filter(time => time > 0));
-    const leastActiveHour = minHourTime > 0 
-      ? hourTimePlayed.indexOf(minHourTime) 
-      : null;
-    const minDayTime = Math.min(...dayOfWeekTimePlayed.filter(time => time > 0));
-    const leastActiveDayOfWeek = minDayTime > 0
-      ? dayOfWeekTimePlayed.indexOf(minDayTime)
-      : null;
-    
+    const minHourTime = Math.min(...hourTimePlayed.filter((time) => time > 0));
+    const leastActiveHour =
+      minHourTime > 0 ? hourTimePlayed.indexOf(minHourTime) : null;
+    const minDayTime = Math.min(
+      ...dayOfWeekTimePlayed.filter((time) => time > 0)
+    );
+    const leastActiveDayOfWeek =
+      minDayTime > 0 ? dayOfWeekTimePlayed.indexOf(minDayTime) : null;
+
     // Total time for percentage calculations
     const totalTimeByHour = hourTimePlayed.reduce((sum, time) => sum + time, 0);
-    const totalTimeByDay = dayOfWeekTimePlayed.reduce((sum, time) => sum + time, 0);
-    
+    const totalTimeByDay = dayOfWeekTimePlayed.reduce(
+      (sum, time) => sum + time,
+      0
+    );
+
     // Find peak 3-hour activity window
     let peakWindowStart = 0;
     let peakWindowTime = 0;
     for (let i = 0; i < 24; i++) {
-      const windowTime = hourTimePlayed[i] + 
-                        hourTimePlayed[(i + 1) % 24] + 
-                        hourTimePlayed[(i + 2) % 24];
+      const windowTime =
+        hourTimePlayed[i] +
+        hourTimePlayed[(i + 1) % 24] +
+        hourTimePlayed[(i + 2) % 24];
       if (windowTime > peakWindowTime) {
         peakWindowTime = windowTime;
         peakWindowStart = i;
@@ -785,7 +814,9 @@ export function useWrappedStats(
       },
       fireteamStats: {
         ...fireteamStats,
-        fireteamSizeDistribution: Array.from(fireteamStats.fireteamSizeDistribution.entries()).map(([size, count]) => ({ size, count })),
+        fireteamSizeDistribution: Array.from(
+          fireteamStats.fireteamSizeDistribution.entries()
+        ).map(([size, count]) => ({ size, count })),
       },
       weaponStats: {
         weaponKills,

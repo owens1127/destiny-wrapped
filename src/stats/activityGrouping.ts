@@ -64,11 +64,11 @@ export function groupActivitiesByName(
 /**
  * Generic grouping utility for activities
  */
-export function groupActivitiesBy<T>(
-  activities: DestinyHistoricalStatsPeriodGroup[],
-  getKey: (activity: DestinyHistoricalStatsPeriodGroup) => T
-): Map<T, DestinyHistoricalStatsPeriodGroup[]> {
-  const grouped = new Map<T, DestinyHistoricalStatsPeriodGroup[]>();
+export function groupActivitiesBy<
+  T,
+  A extends DestinyHistoricalStatsPeriodGroup = DestinyHistoricalStatsPeriodGroup
+>(activities: A[], getKey: (activity: A) => T): Map<T, A[]> {
+  const grouped = new Map<T, A[]>();
 
   activities.forEach((activity) => {
     const key = getKey(activity);
