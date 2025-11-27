@@ -59,17 +59,6 @@ export function TimeOfDayCard({
     hasData &&
     (timeOfDayStats.mostActiveHour >= 20 || timeOfDayStats.mostActiveHour < 6);
 
-  const getTimePeriod = (hour: number): string => {
-    if (hour >= 5 && hour < 9) return "Early Morning";
-    if (hour >= 9 && hour < 12) return "Morning";
-    if (hour >= 12 && hour < 17) return "Afternoon";
-    if (hour >= 17 && hour < 20) return "Evening";
-    if (hour >= 20 && hour < 23) return "Night";
-    return "Late Night";
-  };
-
-  const timePeriod = hasData ? getTimePeriod(timeOfDayStats.mostActiveHour) : null;
-
   return (
     <DestinyWrappedCard className={`bg-gradient-to-br ${colorClass}`}>
       <CardHeader className="relative z-10">

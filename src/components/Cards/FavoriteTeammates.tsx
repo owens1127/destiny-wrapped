@@ -99,14 +99,6 @@ export function FavoriteTeammatesCard({
                     : rank === 3
                     ? "text-orange-600" // Bronze
                     : "text-white"; // Default white
-                const rankSizeClass =
-                  rank === 1
-                    ? "text-3xl" // Largest
-                    : rank === 2
-                    ? "text-2xl" // Medium
-                    : rank === 3
-                    ? "text-xl" // Smaller
-                    : "text-lg"; // Smallest
 
                 return (
                   <motion.div

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useColor } from "@/ui/useColor";
 import { DestinyWrappedCard } from "../DestinyWrappedCard";
-import { Users, User, Clock, BarChart3 } from "lucide-react";
+import { Users, User, BarChart3 } from "lucide-react";
 import { formatHours } from "./utils";
 
 interface FireteamStats {
@@ -29,7 +29,6 @@ interface FireteamCardProps {
 
 export function FireteamCard({
   fireteamStats,
-  totalActivities,
   idx,
   hasPGCRData,
 }: FireteamCardProps) {

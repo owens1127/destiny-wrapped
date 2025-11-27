@@ -1,9 +1,7 @@
 import { useMemo } from "react";
 import {
-  DestinyActivityModeType,
   DestinyClass,
   DestinyHistoricalStatsPeriodGroup,
-  DestinyPostGameCarnageReportData,
 } from "bungie-net-core/models";
 import { activityModeNames } from "@/config/modes";
 import { getSeason, seasonWeights } from "@/config/seasons";
