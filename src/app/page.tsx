@@ -2,6 +2,7 @@
 
 import { ActivityWrapper } from "@/components/ActivityWrapper";
 import { IntroScreen } from "@/components/IntroScreen";
+import { LoadingWithInfo } from "@/components/LoadingWithInfo";
 
 import { useDestinyCharacters } from "@/characters/useDestinyCharacters";
 import { useDestinyManifestComponent } from "@/manifest/useDestinyManifestComponent";
@@ -9,17 +10,6 @@ import { useDestinyMembership } from "@/characters/useDestinyMembership";
 import { useToast } from "@/ui/useToast";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-
-const LoadingActivities = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <div className="text-white text-xl mb-2">Loading activities...</div>
-        <div className="text-white/60 text-sm">Fetching your activity history</div>
-      </div>
-    </div>
-  );
-};
 
 export default function Home() {
   const router = useRouter();
@@ -61,7 +51,7 @@ export default function Home() {
   }, [toast, charactersQuery.isError, charactersQuery.error]);
 
   if (membershipQuery.isPending || charactersQuery.isPending) {
-    return <LoadingActivities />;
+    return <LoadingWithInfo />;
   }
 
   if (membershipQuery.isError || charactersQuery.isError) {
@@ -73,7 +63,7 @@ export default function Home() {
       destinyMembershipId={membershipQuery.data.membershipId}
       membershipType={membershipQuery.data.membershipType}
       characterIds={charactersQuery.data.characterIds}
-      fallback={<LoadingActivities />}
+      fallback={<LoadingWithInfo />}
       noActivities={<div className="text-center">{":("}</div>}
       render={(activities) => (
         <IntroScreen
