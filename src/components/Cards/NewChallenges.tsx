@@ -41,7 +41,7 @@ const ChallengeBlock = ({
     transition={{ type: "spring", stiffness: 100, damping: 12 }}
     whileHover={{ scale: 1.02 }}
   >
-    <h3 className="text-xl md:text-2xl font-bold mb-4">{title}</h3>
+    <h3 className="text-xl font-bold mb-4">{title}</h3>
     <div className={isLeft ? "text-left" : "text-right"}>
       <motion.p 
         className="text-4xl font-bold"

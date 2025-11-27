@@ -83,7 +83,7 @@ export function TimeOfDayCard({
           </CardTitle>
         </motion.div>
       </CardHeader>
-      <CardContent className="relative z-10 p-6 text-white">
+      <CardContent className="relative z-10 p-4 text-white">
         {!hasData ? (
           <motion.div
             className="flex flex-col items-center justify-center py-12 text-center"
@@ -105,7 +105,7 @@ export function TimeOfDayCard({
           </motion.div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+            <div className="grid grid-cols-1 gap-6 items-center">
               {/* Left side - Time */}
               <motion.div
                 className="text-center"

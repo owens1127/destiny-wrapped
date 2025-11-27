@@ -105,7 +105,7 @@ export function AbilityKillsCard({
           </CardTitle>
         </motion.div>
       </CardHeader>
-      <CardContent className="relative z-10 p-3 sm:p-4 text-white h-full flex flex-col">
+      <CardContent className="relative z-10 p-3 text-white h-full flex flex-col">
         {!hasData ? (
           <motion.div
             className="flex flex-col items-center justify-center py-12 text-center"
@@ -137,7 +137,7 @@ export function AbilityKillsCard({
                   Total ability eliminations
                 </motion.p>
                 <motion.span
-                  className="font-black text-2xl sm:text-3xl block leading-none"
+                  className="font-black text-2xl block leading-none"
                   style={{
                     textShadow: "2px 2px 0px rgba(0,0,0,0.3)",
                     transform: "rotate(-2deg)",
@@ -154,7 +154,7 @@ export function AbilityKillsCard({
             </motion.div>
 
             {/* Creative tilted card layout */}
-            <div className="flex-1 relative space-y-1.5 sm:space-y-2  mt-2">
+            <div className="flex-1 relative space-y-1.5 mt-2">
               {stats.map((stat, index) => {
                 const Icon = stat.icon;
                 const rotation = getRotation(index);
@@ -191,7 +191,7 @@ export function AbilityKillsCard({
                   >
                     {/* Tilted card background */}
                     <motion.div
-                      className="relative bg-white/10 backdrop-blur-md rounded-lg p-1.5 sm:p-2 border-2 border-white/20 max-w-[85%] mx-auto"
+                      className="relative bg-white/10 backdrop-blur-md rounded-lg p-1.5 border-2 border-white/20 max-w-[85%] mx-auto"
                       style={{
                         transform: `rotate(${rotation}deg)`,
                         transformOrigin: "center",
@@ -272,7 +272,7 @@ export function AbilityKillsCard({
                           }}
                         >
                           <motion.span
-                            className="text-xl sm:text-2xl font-black block leading-none"
+                            className="text-xl font-black block leading-none"
                             style={{
                               color: stat.color,
                               textShadow: `1px 1px 0px rgba(0,0,0,0.5), 0 0 12px ${stat.color}40`,
@@ -320,13 +320,13 @@ export function AbilityKillsCard({
 
             {/* Decorative elements - floating numbers */}
             <motion.div
-              className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 opacity-10 pointer-events-none"
+              className="absolute bottom-1 right-1 opacity-10 pointer-events-none"
               initial={{ opacity: 0, scale: 0 }}
               animate={{ opacity: 0.08, scale: 1 }}
               transition={{ delay: 1 }}
             >
               <motion.span
-                className="text-4xl sm:text-5xl font-black"
+                className="text-4xl font-black"
                 style={{ transform: "rotate(8deg)" }}
                 animate={{ rotate: [8, 10, 8] }}
                 transition={{ duration: 4, repeat: Infinity }}

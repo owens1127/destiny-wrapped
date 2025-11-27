@@ -64,13 +64,13 @@ export function FavoriteEmblemCard({
             </p>
           </motion.div>
         ) : (
-          <div className="space-y-6 sm:space-y-8">
+          <div className="space-y-6">
             {favoriteEmblems!.map((emblem, index) => {
               const emblemDef = getItemDefinition(emblem.hash);
               return (
                 <motion.div
                   key={emblem.hash}
-                  className="flex flex-col items-center space-y-3 sm:space-y-4"
+                  className="flex flex-col items-center space-y-3"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ type: "spring", delay: index * 0.2 }}
@@ -88,7 +88,7 @@ export function FavoriteEmblemCard({
                           damping: 10,
                           delay: 0.05 + index * 0.2,
                         }}
-                        className="relative w-full max-w-[280px] sm:max-w-[320px] md:max-w-[400px]"
+                        className="relative w-full max-w-[280px]"
                         style={{
                           width:
                             index === 0

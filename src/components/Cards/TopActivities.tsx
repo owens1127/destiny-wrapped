@@ -64,7 +64,7 @@ export function TopActivitiesCard({
           </CardTitle>
         </motion.div>
       </CardHeader>
-      <CardContent className="relative z-10 p-4 sm:p-5 text-white overflow-y-auto flex-1">
+      <CardContent className="relative z-10 p-4 text-white overflow-y-auto flex-1">
         {headerText && (
           <motion.div
             className="mb-2 text-center"
@@ -91,7 +91,7 @@ export function TopActivitiesCard({
             ({ hash, count, timePlayedSeconds, displayName }, index) => (
               <motion.div
                 key={hash}
-                className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 sm:p-3 group"
+                className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 group"
                 variants={{
                   hidden: { opacity: 0, scale: 0.95, y: 5 },
                   visible: {
@@ -110,7 +110,7 @@ export function TopActivitiesCard({
                 <div className="flex items-center gap-3">
                   {/* Rank number */}
                   <motion.span
-                    className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm sm:text-base tabular-nums"
+                    className="flex-shrink-0 w-7 h-7 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm tabular-nums"
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{ delay: index * 0.05 + 0.1, type: "spring" }}
@@ -123,7 +123,7 @@ export function TopActivitiesCard({
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: index * 0.05 + 0.15, type: "spring" }}
-                    className="relative flex-shrink-0 w-20 h-12 sm:w-24 sm:h-14 rounded-md overflow-hidden ring-1 ring-white/20 group-hover:ring-white/40 transition-all"
+                    className="relative flex-shrink-0 w-20 h-12 rounded-md overflow-hidden ring-1 ring-white/20 group-hover:ring-white/40 transition-all"
                   >
                     <Image
                       src={
@@ -142,7 +142,7 @@ export function TopActivitiesCard({
 
                   {/* Activity info */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm sm:text-base font-semibold truncate mb-0.5 group-hover:text-yellow-200 transition-colors">
+                    <h3 className="text-sm font-semibold truncate mb-0.5 group-hover:text-yellow-200 transition-colors">
                       {displayName}
                     </h3>
                     <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs opacity-75">

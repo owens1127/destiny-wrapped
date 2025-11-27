@@ -8,6 +8,7 @@ import { getServerSession } from "./api/auth";
 import { cookies } from "next/headers";
 import { ThemeButton } from "@/components/ThemeButton";
 import { AuthHeader } from "@/components/AuthHeader";
+import { HomeButton } from "@/components/HomeButton";
 import { ColorContextProvider } from "@/ui/useColor";
 import { QueryClientProviderWrapper } from "@/components/QueryClientProviderWrapper";
 import { Footer } from "@/components/Footer";
@@ -47,7 +48,10 @@ export default async function RootLayout({
               <header>
                 <div className="flex flex-col gap-3 items-end p-4">
                   <AuthHeader />
-                  <ThemeButton />
+                  <div className="flex items-center gap-2">
+                    <HomeButton />
+                    <ThemeButton />
+                  </div>
                 </div>
               </header>
               {children}

@@ -267,16 +267,16 @@ export function SixtySevenCard({ sixtySevenStats, idx }: SixtySevenCardProps) {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: "spring", stiffness: 150 }}
         >
-          <CardTitle className="text-3xl sm:text-4xl font-bold text-center text-white drop-shadow-lg">
+          <CardTitle className="text-3xl font-bold text-center text-white drop-shadow-lg">
             Six Seven
           </CardTitle>
         </motion.div>
       </CardHeader>
-      <CardContent className="relative z-10 p-4 sm:p-6 text-white overflow-y-auto flex-1">
+      <CardContent className="relative z-10 p-4 text-white overflow-y-auto flex-1">
         {/* Floating Shrug Emoji */}
         {hasData && (
           <motion.div
-            className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 pointer-events-none"
+            className="absolute top-4 right-4 z-20 pointer-events-none"
             initial={{ scale: 0, rotate: -45, opacity: 0 }}
             animate={{
               scale: 1,
@@ -296,7 +296,7 @@ export function SixtySevenCard({ sixtySevenStats, idx }: SixtySevenCardProps) {
               },
             }}
           >
-            <div className="text-6xl sm:text-7xl">🤷</div>
+            <div className="text-6xl">🤷</div>
           </motion.div>
         )}
 
@@ -330,7 +330,7 @@ export function SixtySevenCard({ sixtySevenStats, idx }: SixtySevenCardProps) {
             >
               <div className="relative inline-block">
                 <motion.div
-                  className="text-8xl sm:text-9xl font-black mb-2 relative z-10"
+                  className="text-8xl font-black mb-2 relative z-10"
                   initial={{ scale: 0, rotate: -180 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
@@ -345,7 +345,7 @@ export function SixtySevenCard({ sixtySevenStats, idx }: SixtySevenCardProps) {
                   {sixtySevenStats.totalCount}
                 </motion.div>
                 <motion.div
-                  className="absolute inset-0 text-8xl sm:text-9xl font-black opacity-20 blur-xl"
+                  className="absolute inset-0 text-8xl font-black opacity-20 blur-xl"
                   animate={{ scale: [1, 1.1, 1] }}
                   transition={{ duration: 2, repeat: Infinity }}
                   style={{
@@ -358,14 +358,14 @@ export function SixtySevenCard({ sixtySevenStats, idx }: SixtySevenCardProps) {
                 </motion.div>
               </div>
               <motion.p
-                className="text-lg sm:text-xl opacity-90 mt-2"
+                className="text-lg opacity-90 mt-2"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
               >
                 times your stats hit the magic number{" "}
                 <motion.span
-                  className="font-black text-3xl sm:text-4xl inline-block relative"
+                  className="font-black text-3xl inline-block relative"
                   animate={{
                     scale: [1, 1.2, 1],
                     rotate: [0, 5, -5, 0],
@@ -389,7 +389,7 @@ export function SixtySevenCard({ sixtySevenStats, idx }: SixtySevenCardProps) {
 
             {/* Stat Type Counters - More Playful Layout */}
             <motion.div
-              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3"
+              className="grid grid-cols-2 gap-2.5"
               initial="hidden"
               animate="visible"
               variants={{
@@ -403,7 +403,7 @@ export function SixtySevenCard({ sixtySevenStats, idx }: SixtySevenCardProps) {
               {statTypesWithCounts.map(([type, count], index) => (
                 <motion.div
                   key={type}
-                  className={`backdrop-blur-md rounded-xl p-3 sm:p-4 border-2 ${getTypeColor(
+                  className={`backdrop-blur-md rounded-xl p-3 border-2 ${getTypeColor(
                     type
                   )} relative overflow-hidden group`}
                   variants={{
@@ -451,7 +451,7 @@ export function SixtySevenCard({ sixtySevenStats, idx }: SixtySevenCardProps) {
                     whileHover={{ rotate: 360 }}
                     transition={{ duration: 0.5 }}
                   >
-                    {getIcon(type, "w-6 h-6 sm:w-7 sm:h-7")}
+                    {getIcon(type, "w-6 h-6")}
                   </motion.div>
 
                   {/* Count with bounce */}
@@ -467,7 +467,7 @@ export function SixtySevenCard({ sixtySevenStats, idx }: SixtySevenCardProps) {
                     }}
                   >
                     <motion.div
-                      className="text-2xl sm:text-3xl font-black mb-0.5"
+                      className="text-2xl font-black mb-0.5"
                       animate={{
                         scale: [1, 1.1, 1],
                       }}
@@ -479,14 +479,14 @@ export function SixtySevenCard({ sixtySevenStats, idx }: SixtySevenCardProps) {
                     >
                       {count}
                     </motion.div>
-                    <div className="text-[10px] sm:text-xs font-semibold opacity-80 leading-tight">
+                    <div className="text-[10px] font-semibold opacity-80 leading-tight">
                       {getTypeLabel(type)}
                     </div>
                   </motion.div>
 
                   {/* Decorative 67 badge */}
                   <motion.div
-                    className="absolute -top-1 -right-1 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-[10px] sm:text-xs font-black border border-white/30"
+                    className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-[10px] font-black border border-white/30"
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{ delay: 0.4 + index * 0.05, type: "spring" }}

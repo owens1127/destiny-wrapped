@@ -61,12 +61,12 @@ export function ModesCard({
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: "spring", stiffness: 200, damping: 15 }}
         >
-          <CardTitle className="text-3xl sm:text-4xl font-bold text-center text-white drop-shadow-lg">
+          <CardTitle className="text-3xl font-bold text-center text-white drop-shadow-lg">
             This mode had you <i>hooked</i>
           </CardTitle>
         </motion.div>
       </CardHeader>
-      <CardContent className="relative z-10 p-4 sm:p-5 text-white">
+      <CardContent className="relative z-10 p-4 text-white">
         {/* Mode name - prominent */}
           <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -74,7 +74,7 @@ export function ModesCard({
           transition={{ delay: 0.1, type: "spring" }}
           className="mb-4"
         >
-          <h3 className="text-4xl sm:text-5xl font-bold text-center mb-1">
+          <h3 className="text-4xl font-bold text-center mb-1">
               {topMode.modeName}
             </h3>
         </motion.div>

@@ -88,7 +88,7 @@ export function DedicationCard({ longestStreak, idx }: DedicationCardProps) {
           </CardTitle>
         </motion.div>
       </CardHeader>
-      <CardContent className="relative z-10 p-4 sm:p-6 text-white">
+      <CardContent className="relative z-10 p-4 text-white">
         {/* Hero section with large number */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -107,16 +107,14 @@ export function DedicationCard({ longestStreak, idx }: DedicationCardProps) {
             transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
           >
             <motion.h3
-              className="text-6xl md:text-7xl font-black"
+              className="text-6xl font-black"
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", delay: 0.2 }}
             >
               {longestStreak.numDays}
             </motion.h3>
-            <span className="text-2xl md:text-3xl font-semibold opacity-90">
-              days
-            </span>
+            <span className="text-2xl font-semibold opacity-90">days</span>
           </motion.div>
           {stats.weeks > 0 && (
             <p className="text-sm opacity-70">

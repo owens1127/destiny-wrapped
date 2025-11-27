@@ -8,9 +8,7 @@ import { DestinyWrappedCard } from "../DestinyWrappedCard";
 import { useGetActivityDefinition } from "@/activities/useGetActivityDefinition";
 import { useGetItemDefinition } from "@/items/useGetItemDefinition";
 import Image from "next/image";
-import {
-  DestinyHistoricalStatsPeriodGroup,
-} from "bungie-net-core/models";
+import { DestinyHistoricalStatsPeriodGroup } from "bungie-net-core/models";
 
 interface SummaryCardProps {
   idx: number;
@@ -46,6 +44,18 @@ interface SummaryCardProps {
   activities: (DestinyHistoricalStatsPeriodGroup & {
     characterId: string;
   })[];
+  longestStreak?: {
+    numDays: number;
+    activityCount: number;
+    start: Date;
+    end: Date;
+  } | null;
+  favoriteEmblems?:
+    | {
+        hash: number;
+        count: number;
+      }[]
+    | null;
 }
 
 export function SummaryCard({
@@ -60,6 +70,8 @@ export function SummaryCard({
   bestFriend,
   hasPGCRData,
   activities,
+  longestStreak,
+  favoriteEmblems,
 }: SummaryCardProps) {
   const colorClass = useColor(idx);
   const getActivityDefinition = useGetActivityDefinition();
@@ -67,10 +79,12 @@ export function SummaryCard({
 
   const teamHashtag = useMemo(() => {
     const minesActivities = activities.filter((activity) => {
-      const activityDef = getActivityDefinition(activity.activityDetails?.referenceId ?? 0);
+      const activityDef = getActivityDefinition(
+        activity.activityDetails?.referenceId ?? 0
+      );
       const activityName = activityDef?.displayProperties.name ?? "";
       const baseName = activityName.split(":")[0].trim();
-      
+
       return (
         baseName.toLowerCase().includes("caldera") ||
         baseName.toLowerCase().includes("k1 logistics")
@@ -82,14 +96,18 @@ export function SummaryCard({
     }
 
     const calderaCount = minesActivities.filter((activity) => {
-      const activityDef = getActivityDefinition(activity.activityDetails?.referenceId ?? 0);
+      const activityDef = getActivityDefinition(
+        activity.activityDetails?.referenceId ?? 0
+      );
       const activityName = activityDef?.displayProperties.name ?? "";
       const baseName = activityName.split(":")[0].trim();
       return baseName.toLowerCase().includes("caldera");
     }).length;
 
     const k1Count = minesActivities.filter((activity) => {
-      const activityDef = getActivityDefinition(activity.activityDetails?.referenceId ?? 0);
+      const activityDef = getActivityDefinition(
+        activity.activityDetails?.referenceId ?? 0
+      );
       const activityName = activityDef?.displayProperties.name ?? "";
       const baseName = activityName.split(":")[0].trim();
       return baseName.toLowerCase().includes("k1 logistics");
@@ -144,28 +162,28 @@ export function SummaryCard({
       {teamHashtag && (
         <motion.div
           initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ 
-            opacity: 1, 
+          animate={{
+            opacity: 1,
             scale: 1,
-            rotate: -12,
+            rotate: -6,
           }}
-          transition={{ 
+          transition={{
             opacity: { type: "spring", delay: 0.2 },
             scale: { type: "spring", delay: 0.2 },
             rotate: { type: "spring", delay: 0.2 },
           }}
           className="absolute top-1 left-1 bg-gradient-to-br from-yellow-400/20 to-orange-500/20 backdrop-blur-md rounded-xl p-1.5 text-center shadow-2xl border-2 border-yellow-400/30 z-30"
-          style={{ transform: "rotate(-12deg)" }}
+          style={{ transform: "rotate(-6deg)" }}
         >
           <motion.div
             className="text-sm font-black text-yellow-300 drop-shadow-lg"
-            animate={{ 
+            animate={{
               scale: [1, 1.05, 1],
             }}
-            transition={{ 
-              duration: 3, 
+            transition={{
+              duration: 3,
               repeat: Infinity,
-              ease: "easeInOut"
+              ease: "easeInOut",
             }}
           >
             {teamHashtag}
@@ -179,7 +197,7 @@ export function SummaryCard({
           transition={{ type: "spring", stiffness: 150 }}
         >
           <CardTitle className="text-4xl font-bold text-center text-white drop-shadow-lg">
-            <motion.div 
+            <motion.div
               className="text-2xl font-normal"
               animate={{ scale: [1, 1.02, 1] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
@@ -195,22 +213,64 @@ export function SummaryCard({
             </motion.h4>
           </CardTitle>
         </motion.div>
+        {/* Favorite Emblem Underlay - top right under title */}
+        {hasPGCRData && favoriteEmblems && favoriteEmblems.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3, type: "spring" }}
+            className="absolute top-0 right-0 z-[-1]"
+            style={{
+              width: "120px",
+              transform: "translate(80%, -20%) rotate(10deg)",
+              transformOrigin: "center center",
+            }}
+          >
+            {(() => {
+              const topEmblem = favoriteEmblems[0];
+              const emblemDef = getItemDefinition(topEmblem.hash);
+              if (!emblemDef?.secondaryOverlay) return null;
+              return (
+                <div
+                  className="relative"
+                  style={{
+                    aspectRatio: "1 / 1",
+                    opacity: 0.8,
+                  }}
+                >
+                  <Image
+                    src={`https://www.bungie.net${emblemDef.secondaryOverlay}`}
+                    alt={emblemDef.displayProperties.name || "Emblem"}
+                    fill
+                    className="object-contain drop-shadow-2xl"
+                    unoptimized
+                  />
+                </div>
+              );
+            })()}
+          </motion.div>
+        )}
       </CardHeader>
-      <CardContent className="relative z-10 p-4 sm:p-6 pt-0 text-white min-h-[400px]">
+      <CardContent className="relative z-10 p-4 pt-0 text-white min-h-[400px]">
         {/* Free-floating stats container */}
         <div className="relative w-full h-full min-h-[350px] mb-4">
           {/* Total Hours - top left */}
           <motion.div
             initial={{ opacity: 0, y: 50, scale: 0.5 }}
-            animate={{ 
-              opacity: 1, 
+            animate={{
+              opacity: 1,
               scale: 1,
               y: [0, -8, 0],
             }}
-            transition={{ 
+            transition={{
               opacity: { type: "spring", delay: 0.1 },
               scale: { type: "spring", delay: 0.1 },
-              y: { duration: 12, repeat: Infinity, ease: "easeInOut", delay: 0.1 }
+              y: {
+                duration: 12,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.1,
+              },
             }}
             className="absolute -top-2 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
             style={{ width: "140px", left: "8px" }}
@@ -228,15 +288,20 @@ export function SummaryCard({
           {/* Activities - top right */}
           <motion.div
             initial={{ opacity: 0, y: 50, scale: 0.5 }}
-            animate={{ 
-              opacity: 1, 
+            animate={{
+              opacity: 1,
               scale: 1,
               y: [0, -10, 0],
             }}
-            transition={{ 
+            transition={{
               opacity: { type: "spring", delay: 0.05 },
               scale: { type: "spring", delay: 0.05 },
-              y: { duration: 14, repeat: Infinity, ease: "easeInOut", delay: 0.05 }
+              y: {
+                duration: 14,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.05,
+              },
             }}
             className="absolute top-0 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
             style={{ width: "140px", right: "-8px" }}
@@ -245,7 +310,12 @@ export function SummaryCard({
             <motion.div
               className="text-3xl font-bold"
               animate={{ scale: [1, 1.02, 1] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.05 }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.05,
+              }}
             >
               {totalStats.count.toLocaleString()}
             </motion.div>
@@ -255,15 +325,20 @@ export function SummaryCard({
           {hasPGCRData && bestFriend && (
             <motion.div
               initial={{ opacity: 0, y: 50, scale: 0.5 }}
-              animate={{ 
-                opacity: 1, 
+              animate={{
+                opacity: 1,
                 scale: 1,
                 y: [0, -12, 0],
               }}
-              transition={{ 
+              transition={{
                 opacity: { type: "spring", delay: 0.05 },
                 scale: { type: "spring", delay: 0.05 },
-                y: { duration: 16, repeat: Infinity, ease: "easeInOut", delay: 0.1 }
+                y: {
+                  duration: 16,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 0.1,
+                },
               }}
               className="absolute top-1/2 -translate-y-1/2 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
               style={{ width: "160px", left: "12px" }}
@@ -272,7 +347,11 @@ export function SummaryCard({
               <motion.div
                 className="text-xl font-bold mb-1"
                 animate={{ scale: [1, 1.02, 1] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
               >
                 {bestFriend.displayName}
                 {bestFriend.bungieGlobalDisplayNameCode !== undefined && (
@@ -290,15 +369,20 @@ export function SummaryCard({
           {/* Favorite Category - between Total Hours and PvE/PvP Split */}
           <motion.div
             initial={{ opacity: 0, y: 50, scale: 0.5 }}
-            animate={{ 
-              opacity: 1, 
+            animate={{
+              opacity: 1,
               scale: 1,
               y: [0, -9, 0],
             }}
-            transition={{ 
+            transition={{
               opacity: { type: "spring", delay: 0.1 },
               scale: { type: "spring", delay: 0.1 },
-              y: { duration: 12.8, repeat: Infinity, ease: "easeInOut", delay: 0.1 }
+              y: {
+                duration: 12.8,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.1,
+              },
             }}
             className="absolute top-[25%] bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
             style={{ width: "150px", left: "-4px" }}
@@ -312,31 +396,42 @@ export function SummaryCard({
               {activityModeNames[topMode.mode]}
             </motion.div>
             <p className="text-xs opacity-80">
-              {topMode.count.toLocaleString()} {topMode.count === 1 ? "attempt" : "attempts"}
+              {topMode.count.toLocaleString()}{" "}
+              {topMode.count === 1 ? "attempt" : "attempts"}
             </p>
           </motion.div>
 
           {/* Kills - bottom left */}
           <motion.div
             initial={{ opacity: 0, y: 50, scale: 0.5 }}
-            animate={{ 
-              opacity: 1, 
+            animate={{
+              opacity: 1,
               scale: 1,
               y: [0, -11, 0],
             }}
-            transition={{ 
+            transition={{
               opacity: { type: "spring", delay: 0.15 },
               scale: { type: "spring", delay: 0.15 },
-              y: { duration: 15.2, repeat: Infinity, ease: "easeInOut", delay: 0.05 }
+              y: {
+                duration: 15.2,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.05,
+              },
             }}
-            className="absolute bottom-0 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
-            style={{ width: "130px", left: "6px" }}
+            className="absolute bottom-0 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg z-20"
+            style={{ width: "130px", left: "2px" }}
           >
             <p className="text-xs opacity-80 mb-1">Kills</p>
             <motion.div
               className="text-2xl font-bold"
               animate={{ scale: [1, 1.02, 1] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.05 }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.05,
+              }}
             >
               {totalStats.kills.toLocaleString()}
             </motion.div>
@@ -345,15 +440,20 @@ export function SummaryCard({
           {/* Deaths - bottom right */}
           <motion.div
             initial={{ opacity: 0, y: 50, scale: 0.5 }}
-            animate={{ 
-              opacity: 1, 
+            animate={{
+              opacity: 1,
               scale: 1,
               y: [0, -7, 0],
             }}
-            transition={{ 
+            transition={{
               opacity: { type: "spring", delay: 0.1 },
               scale: { type: "spring", delay: 0.1 },
-              y: { duration: 13.2, repeat: Infinity, ease: "easeInOut", delay: 0.15 }
+              y: {
+                duration: 13.2,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.15,
+              },
             }}
             className="absolute bottom-0 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
             style={{ width: "130px", right: "-6px" }}
@@ -362,7 +462,12 @@ export function SummaryCard({
             <motion.div
               className="text-2xl font-bold"
               animate={{ scale: [1, 1.02, 1] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.1 }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.1,
+              }}
             >
               {totalStats.deaths.toLocaleString()}
             </motion.div>
@@ -372,15 +477,20 @@ export function SummaryCard({
           {hasPGCRData && topWeapon && (
             <motion.div
               initial={{ opacity: 0, y: 50, scale: 0.5 }}
-              animate={{ 
-                opacity: 1, 
+              animate={{
+                opacity: 1,
                 scale: 1,
                 y: [0, -10, 0],
               }}
-              transition={{ 
+              transition={{
                 opacity: { type: "spring", delay: 0.15 },
                 scale: { type: "spring", delay: 0.15 },
-                y: { duration: 14.4, repeat: Infinity, ease: "easeInOut", delay: 0.1 }
+                y: {
+                  duration: 14.4,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 0.1,
+                },
               }}
               className="absolute top-[20%] left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
               style={{ width: "180px" }}
@@ -389,7 +499,11 @@ export function SummaryCard({
               <motion.div
                 className="text-xl font-bold"
                 animate={{ scale: [1, 1.02, 1] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
               >
                 {getItemDefinition(topWeapon.hash)?.displayProperties.name ||
                   "Unknown"}
@@ -403,15 +517,20 @@ export function SummaryCard({
           {/* PvE/PvP Split - center bottom */}
           <motion.div
             initial={{ opacity: 0, y: 50, scale: 0.5 }}
-            animate={{ 
-              opacity: 1, 
+            animate={{
+              opacity: 1,
               scale: 1,
               y: [0, -8, 0],
             }}
-            transition={{ 
+            transition={{
               opacity: { type: "spring", delay: 0.15 },
               scale: { type: "spring", delay: 0.15 },
-              y: { duration: 13.6, repeat: Infinity, ease: "easeInOut", delay: 0.15 }
+              y: {
+                duration: 13.6,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.15,
+              },
             }}
             className="absolute bottom-1/4 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
             style={{ width: "180px" }}
@@ -427,7 +546,47 @@ export function SummaryCard({
             <p className="text-sm">{getPvePvpSplit.bottom}</p>
           </motion.div>
 
-            </div>
+          {/* Longest Streak - bottom middle */}
+          {longestStreak && (
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.5 }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+                y: [0, -9, 0],
+              }}
+              transition={{
+                opacity: { type: "spring", delay: 0.2 },
+                scale: { type: "spring", delay: 0.2 },
+                y: {
+                  duration: 14,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 0.2,
+                },
+              }}
+              className="absolute bottom-0 bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center shadow-lg"
+              style={{ width: "130px", left: "calc(50% - 70px)" }}
+            >
+              <p className="text-[10px] opacity-80 mb-0.5">Longest Streak</p>
+              <motion.div
+                className="text-xl font-bold mb-0.5"
+                animate={{ scale: [1, 1.02, 1] }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              >
+                {longestStreak.numDays}{" "}
+                {longestStreak.numDays === 1 ? "day" : "days"}
+              </motion.div>
+              <p className="text-[10px] opacity-80">
+                {longestStreak.activityCount} activities
+              </p>
+            </motion.div>
+          )}
+        </div>
 
         {/* Favorite activity image - full width */}
         <motion.div
@@ -445,8 +604,9 @@ export function SummaryCard({
             width={600}
             height={338}
             alt={
-              getActivityDefinition(topActivity.hash)?.displayProperties.name
-                ?.split(":")[0].trim() ?? ""
+              getActivityDefinition(topActivity.hash)
+                ?.displayProperties.name?.split(":")[0]
+                .trim() ?? ""
             }
             unoptimized
           />
@@ -462,10 +622,9 @@ export function SummaryCard({
               animate={{ scale: [1, 1.02, 1] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             >
-              {
-                getActivityDefinition(topActivity.hash)?.displayProperties.name
-                  ?.split(":")[0].trim() ?? "Unknown"
-              }
+              {getActivityDefinition(topActivity.hash)
+                ?.displayProperties.name?.split(":")[0]
+                .trim() ?? "Unknown"}
             </motion.div>
           </motion.div>
         </motion.div>

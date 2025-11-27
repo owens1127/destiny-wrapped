@@ -136,46 +136,46 @@ export function FavoriteTeammatesCard({
                       >
                         {rank === 1 ? (
                           <motion.span
-                            className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 flex items-center justify-center"
+                            className="flex-shrink-0 w-9 h-9 rounded-full bg-white/20 flex items-center justify-center"
                             initial={{ scale: 0, rotate: -180 }}
                             animate={{ scale: 1, rotate: 0 }}
                             transition={{ delay: index * 0.05 + 0.1, type: "spring" }}
                           >
                             <Trophy
-                              className="w-5 h-5 sm:w-6 sm:h-6"
+                              className="w-5 h-5"
                               fill="currentColor"
                               strokeWidth={2}
                             />
                           </motion.span>
                         ) : rank === 2 ? (
                           <motion.span
-                            className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 flex items-center justify-center"
+                            className="flex-shrink-0 w-9 h-9 rounded-full bg-white/20 flex items-center justify-center"
                             initial={{ scale: 0, rotate: -180 }}
                             animate={{ scale: 1, rotate: 0 }}
                             transition={{ delay: index * 0.05 + 0.1, type: "spring" }}
                           >
                             <Trophy
-                              className="w-4 h-4 sm:w-5 sm:h-5"
+                              className="w-4 h-4"
                               fill="currentColor"
                               strokeWidth={2}
                             />
                           </motion.span>
                         ) : rank === 3 ? (
                           <motion.span
-                            className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 flex items-center justify-center"
+                            className="flex-shrink-0 w-9 h-9 rounded-full bg-white/20 flex items-center justify-center"
                             initial={{ scale: 0, rotate: -180 }}
                             animate={{ scale: 1, rotate: 0 }}
                             transition={{ delay: index * 0.05 + 0.1, type: "spring" }}
                           >
                             <Trophy
-                              className="w-3.5 h-3.5 sm:w-4 sm:h-4"
+                              className="w-3.5 h-3.5"
                               fill="currentColor"
                               strokeWidth={2}
                             />
                           </motion.span>
                         ) : (
                           <motion.span
-                            className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm sm:text-base tabular-nums"
+                            className="flex-shrink-0 w-7 h-7 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm tabular-nums"
                             initial={{ scale: 0, rotate: -180 }}
                             animate={{ scale: 1, rotate: 0 }}
                             transition={{ delay: index * 0.05 + 0.1, type: "spring" }}

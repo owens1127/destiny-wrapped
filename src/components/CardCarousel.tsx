@@ -186,12 +186,12 @@ export function CardCarousel({ children, className }: CardCarouselProps) {
           </motion.div>
         </AnimatePresence>
 
-        {/* Navigation Arrows - Desktop only */}
+        {/* Navigation Arrows - Always visible */}
         {totalCards > 1 && (
           <>
             <button
               onClick={prevSlide}
-              className="hidden sm:block absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full p-2 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full p-2 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               aria-label="Previous card"
               disabled={isDragging}
             >
@@ -199,7 +199,7 @@ export function CardCarousel({ children, className }: CardCarouselProps) {
             </button>
             <button
               onClick={nextSlide}
-              className="hidden sm:block absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full p-2 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full p-2 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               aria-label="Next card"
               disabled={isDragging}
             >
@@ -209,19 +209,9 @@ export function CardCarousel({ children, className }: CardCarouselProps) {
         )}
       </div>
 
-      {/* Progress Indicators with Mobile Navigation */}
+      {/* Progress Indicators */}
       {totalCards > 1 && (
         <div className="flex items-center justify-center gap-2 mt-6">
-          {/* Mobile Navigation - Previous */}
-          <button
-            onClick={prevSlide}
-            className="sm:hidden bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full p-2 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-            aria-label="Previous card"
-            disabled={isDragging}
-          >
-            <ChevronLeft className="w-5 h-5 text-white" />
-          </button>
-
           {/* Progress Dots */}
           <div className="flex items-center gap-2">
             {validChildren.map((_, index) => (
@@ -238,16 +228,6 @@ export function CardCarousel({ children, className }: CardCarouselProps) {
               />
             ))}
           </div>
-
-          {/* Mobile Navigation - Next */}
-          <button
-            onClick={nextSlide}
-            className="sm:hidden bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full p-2 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-            aria-label="Next card"
-            disabled={isDragging}
-          >
-            <ChevronRight className="w-5 h-5 text-white" />
-          </button>
         </div>
       )}
 

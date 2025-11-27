@@ -111,7 +111,7 @@ export function ClassStatsCard({
           className="flex items-center justify-center mb-1 gap-3"
         >
           <div className="flex flex-col items-center justify-center gap-1">
-            <ClassIcon className="w-28 h-28 sm:w-32 sm:h-32 text-white fill-current" />
+            <ClassIcon className="w-28 h-28 text-white fill-current" />
             <div className="text-center text-4xl">
               {destinyClassName[mostPlayedClass]}
             </div>

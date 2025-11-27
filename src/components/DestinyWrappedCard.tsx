@@ -19,7 +19,7 @@ export function DestinyWrappedCard({
       <Card
         className={cn(
           className,
-          "overflow-hidden shadow-lg shadow-gray-700/50 dark:shadow-lg dark:shadow-gray-600/50 h-[768px] lg:h-[960px] flex flex-col"
+          "overflow-hidden shadow-lg shadow-gray-700/50 dark:shadow-lg dark:shadow-gray-600/50 h-[768px] flex flex-col"
         )}
       >
         <div className="flex-1 overflow-hidden">{children}</div>

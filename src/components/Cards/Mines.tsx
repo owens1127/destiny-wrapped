@@ -44,7 +44,7 @@ export function MinesCard({ idx, activities }: MinesCardProps) {
           </CardTitle>
         </motion.div>
       </CardHeader>
-      <CardContent className="relative z-10 p-3 sm:p-4 text-white">
+      <CardContent className="relative z-10 p-3 text-white">
         {!hasData ? (
           <motion.div
             initial={{ opacity: 0 }}
@@ -58,7 +58,7 @@ export function MinesCard({ idx, activities }: MinesCardProps) {
             </p>
           </motion.div>
         ) : (
-          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+          <div className="grid grid-cols-2 gap-2.5">
             {minesStats.activities.map((activity, index) => {
               const activityDef = getActivityDefinition(activity.hash);
               const bgImage = activityDef?.pgcrImage
@@ -71,13 +71,13 @@ export function MinesCard({ idx, activities }: MinesCardProps) {
               // Scale card size and brightness based on popularity ratio (relative to total runs)
               const popularityRatio = activity.popularityRatio ?? 0;
               // More popular = brighter (less opacity on overlays, more opacity on card bg)
-              const bgOpacity = 0.15 + popularityRatio * 0.15; // 0.15 to 0.30 (increased from 0.05-0.15)
-              const overlayOpacity = 0.25 - popularityRatio * 0.15; // 0.25 to 0.10 (increased base, less reduction)
-              const overlayOpacity2 = 0.15 - popularityRatio * 0.08; // 0.15 to 0.07 (increased base)
+              const bgOpacity = 0.25 + popularityRatio * 0.2; // 0.25 to 0.45 (darker base)
+              const overlayOpacity = 0.4 - popularityRatio * 0.2; // 0.4 to 0.2 (darker overlays)
+              const overlayOpacity2 = 0.3 - popularityRatio * 0.15; // 0.3 to 0.15 (darker overlays)
               // Border width scales from 1px to 4px based on popularity percentage
               const borderWidth = 1 + popularityRatio * 3; // 1px to 4px
               // Font opacity scales from 85% to 100% based on popularity
-              const textOpacity = 0.85 + popularityRatio * 0.15; // 0.85 to 1.0
+              const textOpacity = 0.9 + popularityRatio * 0.1; // 0.9 to 1.0 (brighter text)
               // Font weight scales from normal to bold based on popularity
               const fontWeight =
                 popularityRatio > 0.5
@@ -109,7 +109,7 @@ export function MinesCard({ idx, activities }: MinesCardProps) {
                           fill
                           unoptimized
                           alt={activity.name}
-                          className="object-cover blur-[1px] opacity-60 scale-110"
+                          className="object-cover blur-[2px] opacity-50 scale-110"
                           style={{ borderRadius: "0.5rem" }}
                         />
                         <div
@@ -125,13 +125,13 @@ export function MinesCard({ idx, activities }: MinesCardProps) {
                       className="relative rounded-lg"
                       style={{
                         padding: `${0.75 + popularityRatio * 0.15}rem`,
-                        backgroundColor: `rgba(255, 255, 255, ${bgOpacity})`,
+                        backgroundColor: `rgba(0, 0, 0, ${bgOpacity})`,
                         border: `${borderWidth}px solid rgba(255, 255, 255, 0.3)`,
                       }}
                     >
                       {/* Title */}
                       <motion.h3
-                        className="text-base sm:text-lg mb-1 sm:mb-1.5"
+                        className="text-base mb-1"
                         style={{
                           fontWeight: fontWeight,
                           opacity: textOpacity,
@@ -145,8 +145,8 @@ export function MinesCard({ idx, activities }: MinesCardProps) {
                       </motion.h3>
 
                       {/* Consistent layout: 2 columns */}
-                      <div className="flex items-start gap-2 sm:gap-2.5">
-                        <div className="flex-1 space-y-1 sm:space-y-1.5">
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1 space-y-1">
                           <motion.div
                             initial={{ scale: 0.8 }}
                             animate={{ scale: 1 }}
@@ -162,7 +162,7 @@ export function MinesCard({ idx, activities }: MinesCardProps) {
                               Total Runs
                             </p>
                             <p
-                              className="text-2xl sm:text-3xl"
+                              className="text-2xl"
                               style={{
                                 fontWeight: fontWeight,
                                 opacity: textOpacity,
@@ -206,7 +206,7 @@ export function MinesCard({ idx, activities }: MinesCardProps) {
                             </p>
                           </div>
                         </div>
-                        <div className="flex-1 space-y-1 sm:space-y-1.5">
+                        <div className="flex-1 space-y-1">
                           <div>
                             <p
                               className="text-xs mb-0.5"

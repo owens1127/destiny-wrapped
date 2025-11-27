@@ -86,7 +86,7 @@ export function FireteamCard({
           </CardTitle>
         </motion.div>
       </CardHeader>
-      <CardContent className="relative z-10 p-4 sm:p-6 text-white">
+      <CardContent className="relative z-10 p-4 text-white">
         {!hasData ? (
           <motion.div
             className="flex flex-col items-center justify-center py-12 text-center"
