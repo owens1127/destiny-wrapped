@@ -3,16 +3,16 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useBungie } from "@/hooks/useBungie";
+import { useBungie } from "@/api/useBungie";
 import { useAuthorizedBungieSession } from "next-bungie-auth/client";
 import {
   getStorageSize,
   storePGCRs,
   getActivitiesWithPGCRs,
   clearPGCRs,
-} from "@/lib/idb";
-import { useToast } from "@/hooks/useToast";
-import { Download, Trash2, Loader2, Sparkles, BarChart3 } from "lucide-react";
+} from "@/api/idb";
+import { useToast } from "@/ui/useToast";
+import { Download, Trash2, Loader2, Sparkles } from "lucide-react";
 import {
   DestinyHistoricalStatsPeriodGroup,
   DestinyPostGameCarnageReportData,
@@ -24,8 +24,6 @@ interface PGCRDownloadProps {
     characterId: string;
   })[];
   onDownloadingChange?: (isDownloading: boolean) => void;
-  onViewWithoutPGCRs?: () => void;
-  onDownloadClicked?: () => void;
   onStorageCleared?: () => void;
   onAllDownloaded?: () => void;
 }
@@ -33,8 +31,6 @@ interface PGCRDownloadProps {
 export function PGCRDownload({
   activities,
   onDownloadingChange,
-  onViewWithoutPGCRs,
-  onDownloadClicked,
   onStorageCleared,
   onAllDownloaded,
 }: PGCRDownloadProps) {
@@ -192,9 +188,6 @@ export function PGCRDownload({
   }, [activityIds.length, isChecking, downloadStats, checkExistingPGCRs]);
 
   const handleDownload = async () => {
-    // Notify parent that user clicked download button (wants to view stats)
-    onDownloadClicked?.();
-
     if (!session.data?.accessToken) {
       toast({
         title: "Authentication required",
@@ -429,7 +422,7 @@ export function PGCRDownload({
     : 0;
 
   return (
-    <Card className="mb-8 relative overflow-hidden">
+    <Card className="mb-4 relative overflow-hidden">
       {/* Subtle sparkle decorations */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {[...Array(4)].map((_, i) => (
@@ -469,26 +462,18 @@ export function PGCRDownload({
           >
             <Sparkles className="w-5 h-5 text-yellow-400" />
           </motion.div>
-          NEW in 2025: Optional Extended Stats
+          Download PGCRs
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="text-xs sm:text-sm text-muted-foreground space-y-1.5">
-          <p>
-            Download individual Post Game Carnage Reports to unlock additional
-            statistics like fireteam members, weapon usage, and detailed
-            performance metrics.
-          </p>
-          <p>
-            Data is stored locally in your browser. This is completely optional
-            - you can still view your basic wrapped stats without downloading
-            PGCRs, but you will not be able to see more advanced stats.
-          </p>
-          <p className="text-amber-500 dark:text-amber-400">
-            ⚠️ Not recommended for poor data connections or slow devices. This
-            will download significant amounts of data.
-          </p>
-        </div>
+        <p className="text-xs sm:text-sm text-amber-500 dark:text-amber-400">
+          ⚠️ Not recommended for poor data connections or slow devices. This
+          will download significant amounts of data.
+        </p>
+        <p className="text-xs sm:text-sm text-muted-foreground">
+          You only need to do this once - data is stored locally in your
+          browser.
+        </p>
 
         {isChecking && (
           <div className="text-center py-4">
@@ -655,20 +640,6 @@ export function PGCRDownload({
               </Button>
             )}
           </div>
-          <Button
-            onClick={() => onViewWithoutPGCRs?.()}
-            disabled={isDownloading}
-            className={`w-full ${
-              downloadStats !== null && downloadStats.needsDownload === 0
-                ? "bg-green-500 hover:bg-green-600 text-black dark:bg-green-500 dark:hover:bg-green-600 dark:text-black"
-                : "bg-yellow-500 hover:bg-yellow-600 text-black dark:bg-yellow-500 dark:hover:bg-yellow-600 dark:text-black"
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            <BarChart3 className="w-4 h-4 mr-2" />
-            {downloadStats !== null && downloadStats.needsDownload === 0
-              ? "View Stats"
-              : "View Stats Without PGCRs"}
-          </Button>
         </div>
       </CardContent>
     </Card>

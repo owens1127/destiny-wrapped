@@ -1,6 +1,6 @@
 import { DestinyActivityDefinition } from "bungie-net-core/models";
 import { useCallback } from "react";
-import { useDestinyManifestComponent } from "./useDestinyManifestComponent";
+import { useDestinyManifestComponent } from "@/manifest/useDestinyManifestComponent";
 
 export const useGetActivityDefinition = () => {
   const { isSuccess, data } = useDestinyManifestComponent(

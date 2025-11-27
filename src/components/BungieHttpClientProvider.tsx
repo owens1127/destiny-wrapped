@@ -1,6 +1,6 @@
 "use client";
 
-import { BungieHttpClient } from "@/lib/BungieClient";
+import { BungieHttpClient } from "@/api/BungieClient";
 import { createContext, useState } from "react";
 
 export const BungieHttpClientContext = createContext<BungieHttpClient | null>(

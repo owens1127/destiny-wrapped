@@ -3,10 +3,10 @@
 import React, { useMemo } from "react";
 import { motion } from "framer-motion";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useColor } from "@/hooks/useColor";
+import { useColor } from "@/ui/useColor";
 import { DestinyWrappedCard } from "../DestinyWrappedCard";
-import { useGetActivityDefinition } from "@/hooks/useGetActivityDefinition";
-import { useGetItemDefinition } from "@/hooks/useGetItemDefinition";
+import { useGetActivityDefinition } from "@/activities/useGetActivityDefinition";
+import { useGetItemDefinition } from "@/items/useGetItemDefinition";
 import Image from "next/image";
 import {
   DestinyHistoricalStatsPeriodGroup,
@@ -150,11 +150,11 @@ export function SummaryCard({
             rotate: -12,
           }}
           transition={{ 
-            opacity: { type: "spring", delay: 0.9 },
-            scale: { type: "spring", delay: 0.9 },
-            rotate: { type: "spring", delay: 0.9 },
+            opacity: { type: "spring", delay: 0.2 },
+            scale: { type: "spring", delay: 0.2 },
+            rotate: { type: "spring", delay: 0.2 },
           }}
-          className="absolute top-2 left-2 bg-gradient-to-br from-yellow-400/20 to-orange-500/20 backdrop-blur-md rounded-xl p-1.5 text-center shadow-2xl border-2 border-yellow-400/30 z-30"
+          className="absolute top-1 left-1 bg-gradient-to-br from-yellow-400/20 to-orange-500/20 backdrop-blur-md rounded-xl p-1.5 text-center shadow-2xl border-2 border-yellow-400/30 z-30"
           style={{ transform: "rotate(-12deg)" }}
         >
           <motion.div
@@ -172,7 +172,7 @@ export function SummaryCard({
           </motion.div>
         </motion.div>
       )}
-      <CardHeader className="relative z-10">
+      <CardHeader className="relative z-10 pt-8">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -189,7 +189,7 @@ export function SummaryCard({
             <motion.h4
               initial={{ y: -10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2, type: "spring" }}
+              transition={{ delay: 0.05, type: "spring" }}
             >
               {displayName}
             </motion.h4>
@@ -234,9 +234,9 @@ export function SummaryCard({
               y: [0, -10, 0],
             }}
             transition={{ 
-              opacity: { type: "spring", delay: 0.2 },
-              scale: { type: "spring", delay: 0.2 },
-              y: { duration: 14, repeat: Infinity, ease: "easeInOut", delay: 0.2 }
+              opacity: { type: "spring", delay: 0.05 },
+              scale: { type: "spring", delay: 0.05 },
+              y: { duration: 14, repeat: Infinity, ease: "easeInOut", delay: 0.05 }
             }}
             className="absolute top-0 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
             style={{ width: "140px", right: "-8px" }}
@@ -245,7 +245,7 @@ export function SummaryCard({
             <motion.div
               className="text-3xl font-bold"
               animate={{ scale: [1, 1.02, 1] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.05 }}
             >
               {totalStats.count.toLocaleString()}
             </motion.div>
@@ -261,9 +261,9 @@ export function SummaryCard({
                 y: [0, -12, 0],
               }}
               transition={{ 
-                opacity: { type: "spring", delay: 0.3 },
-                scale: { type: "spring", delay: 0.3 },
-                y: { duration: 16, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
+                opacity: { type: "spring", delay: 0.05 },
+                scale: { type: "spring", delay: 0.05 },
+                y: { duration: 16, repeat: Infinity, ease: "easeInOut", delay: 0.1 }
               }}
               className="absolute top-1/2 -translate-y-1/2 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
               style={{ width: "160px", left: "12px" }}
@@ -296,9 +296,9 @@ export function SummaryCard({
               y: [0, -9, 0],
             }}
             transition={{ 
-              opacity: { type: "spring", delay: 0.4 },
-              scale: { type: "spring", delay: 0.4 },
-              y: { duration: 12.8, repeat: Infinity, ease: "easeInOut", delay: 0.6 }
+              opacity: { type: "spring", delay: 0.1 },
+              scale: { type: "spring", delay: 0.1 },
+              y: { duration: 12.8, repeat: Infinity, ease: "easeInOut", delay: 0.1 }
             }}
             className="absolute top-[25%] bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
             style={{ width: "150px", left: "-4px" }}
@@ -325,9 +325,9 @@ export function SummaryCard({
               y: [0, -11, 0],
             }}
             transition={{ 
-              opacity: { type: "spring", delay: 0.5 },
-              scale: { type: "spring", delay: 0.5 },
-              y: { duration: 15.2, repeat: Infinity, ease: "easeInOut", delay: 0.3 }
+              opacity: { type: "spring", delay: 0.15 },
+              scale: { type: "spring", delay: 0.15 },
+              y: { duration: 15.2, repeat: Infinity, ease: "easeInOut", delay: 0.05 }
             }}
             className="absolute bottom-0 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
             style={{ width: "130px", left: "6px" }}
@@ -336,7 +336,7 @@ export function SummaryCard({
             <motion.div
               className="text-2xl font-bold"
               animate={{ scale: [1, 1.02, 1] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.05 }}
             >
               {totalStats.kills.toLocaleString()}
             </motion.div>
@@ -351,9 +351,9 @@ export function SummaryCard({
               y: [0, -7, 0],
             }}
             transition={{ 
-              opacity: { type: "spring", delay: 0.6 },
-              scale: { type: "spring", delay: 0.6 },
-              y: { duration: 13.2, repeat: Infinity, ease: "easeInOut", delay: 0.5 }
+              opacity: { type: "spring", delay: 0.1 },
+              scale: { type: "spring", delay: 0.1 },
+              y: { duration: 13.2, repeat: Infinity, ease: "easeInOut", delay: 0.15 }
             }}
             className="absolute bottom-0 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
             style={{ width: "130px", right: "-6px" }}
@@ -362,7 +362,7 @@ export function SummaryCard({
             <motion.div
               className="text-2xl font-bold"
               animate={{ scale: [1, 1.02, 1] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.1 }}
             >
               {totalStats.deaths.toLocaleString()}
             </motion.div>
@@ -378,8 +378,8 @@ export function SummaryCard({
                 y: [0, -10, 0],
               }}
               transition={{ 
-                opacity: { type: "spring", delay: 0.7 },
-                scale: { type: "spring", delay: 0.7 },
+                opacity: { type: "spring", delay: 0.15 },
+                scale: { type: "spring", delay: 0.15 },
                 y: { duration: 14.4, repeat: Infinity, ease: "easeInOut", delay: 0.1 }
               }}
               className="absolute top-[20%] left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
@@ -409,9 +409,9 @@ export function SummaryCard({
               y: [0, -8, 0],
             }}
             transition={{ 
-              opacity: { type: "spring", delay: 0.8 },
-              scale: { type: "spring", delay: 0.8 },
-              y: { duration: 13.6, repeat: Infinity, ease: "easeInOut", delay: 0.7 }
+              opacity: { type: "spring", delay: 0.15 },
+              scale: { type: "spring", delay: 0.15 },
+              y: { duration: 13.6, repeat: Infinity, ease: "easeInOut", delay: 0.15 }
             }}
             className="absolute bottom-1/4 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
             style={{ width: "180px" }}
@@ -433,7 +433,7 @@ export function SummaryCard({
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: "spring", delay: 0.7 }}
+          transition={{ type: "spring", delay: 0.15 }}
           className="relative w-full rounded-lg overflow-hidden"
         >
           <Image
@@ -454,7 +454,7 @@ export function SummaryCard({
             className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9 }}
+            transition={{ delay: 0.2 }}
           >
             <p className="text-sm opacity-80 mb-1">Your favorite activity</p>
             <motion.div

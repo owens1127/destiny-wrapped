@@ -3,7 +3,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useColor } from "@/hooks/useColor";
+import { useColor } from "@/ui/useColor";
 import { DestinyWrappedCard } from "../DestinyWrappedCard";
 import { Trophy } from "lucide-react";
 
@@ -42,7 +42,7 @@ export function FavoriteTeammatesCard({
           </CardTitle>
         </motion.div>
       </CardHeader>
-      <CardContent className="relative z-10 p-6 text-white">
+      <CardContent className="relative z-10 px-5 pt-3 pb-4 text-white">
         {!hasData ? (
           <motion.div
             className="flex flex-col items-center justify-center py-12 text-center"
@@ -59,17 +59,17 @@ export function FavoriteTeammatesCard({
         ) : (
           <>
             <motion.div
-              className="mb-6 text-center"
+              className="mb-3 text-center"
               initial={{ opacity: 0, y: 20, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ type: "spring", stiffness: 120, delay: 0.1 }}
             >
-              <p className="text-xl">
+              <p className="text-lg">
                 You played with{" "}
                 <motion.span
-                  className="font-bold text-3xl"
+                  className="font-bold text-2xl"
                   animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ duration: 0.6, delay: 0.3 }}
+                  transition={{ duration: 0.6, delay: 0.05 }}
                 >
                   {teammateStats.totalCount}
                 </motion.span>{" "}
@@ -78,7 +78,7 @@ export function FavoriteTeammatesCard({
             </motion.div>
 
             <motion.div
-              className="space-y-4"
+              className="space-y-2.5"
               initial="hidden"
               animate="visible"
               variants={{
@@ -101,17 +101,17 @@ export function FavoriteTeammatesCard({
                     : "text-white"; // Default white
                 const rankSizeClass =
                   rank === 1
-                    ? "text-4xl" // Largest
+                    ? "text-3xl" // Largest
                     : rank === 2
-                    ? "text-3xl" // Medium
+                    ? "text-2xl" // Medium
                     : rank === 3
-                    ? "text-2xl" // Smaller
-                    : "text-xl"; // Smallest
+                    ? "text-xl" // Smaller
+                    : "text-lg"; // Smallest
 
                 return (
                   <motion.div
                     key={teammate.membershipId}
-                    className="flex items-center justify-between bg-white/10 backdrop-blur-sm rounded-lg p-4"
+                    className="flex items-center justify-between bg-white/10 backdrop-blur-sm rounded-lg p-2.5"
                     variants={{
                       hidden: { opacity: 0, scale: 0.8 },
                       visible: {
@@ -128,51 +128,64 @@ export function FavoriteTeammatesCard({
                   >
                     <div className="flex items-center space-x-4 flex-1">
                       <motion.div
-                        className={`flex items-center justify-center ${rankSizeClass} font-bold ${rankColorClass}`}
+                        className={`flex items-center justify-center ${rankColorClass}`}
                         animate={{
                           scale: [1, 1.1, 1],
                         }}
                         transition={{ duration: 1, delay: index * 0.1 }}
                       >
                         {rank === 1 ? (
-                          <div className="flex items-center gap-2">
+                          <motion.span
+                            className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 flex items-center justify-center"
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            transition={{ delay: index * 0.05 + 0.1, type: "spring" }}
+                          >
                             <Trophy
-                              className={`${
-                                rank === 1
-                                  ? "w-8 h-8"
-                                  : rank === 2
-                                  ? "w-6 h-6"
-                                  : "w-5 h-5"
-                              }`}
+                              className="w-5 h-5 sm:w-6 sm:h-6"
                               fill="currentColor"
                               strokeWidth={2}
                             />
-                            <span>{rank}</span>
-                          </div>
+                          </motion.span>
                         ) : rank === 2 ? (
-                          <div className="flex items-center gap-2">
+                          <motion.span
+                            className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 flex items-center justify-center"
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            transition={{ delay: index * 0.05 + 0.1, type: "spring" }}
+                          >
                             <Trophy
-                              className="w-6 h-6"
+                              className="w-4 h-4 sm:w-5 sm:h-5"
                               fill="currentColor"
                               strokeWidth={2}
                             />
-                            <span>{rank}</span>
-                          </div>
+                          </motion.span>
                         ) : rank === 3 ? (
-                          <div className="flex items-center gap-2">
+                          <motion.span
+                            className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/20 flex items-center justify-center"
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            transition={{ delay: index * 0.05 + 0.1, type: "spring" }}
+                          >
                             <Trophy
-                              className="w-5 h-5"
+                              className="w-3.5 h-3.5 sm:w-4 sm:h-4"
                               fill="currentColor"
                               strokeWidth={2}
                             />
-                            <span>{rank}</span>
-                          </div>
+                          </motion.span>
                         ) : (
-                          rank
+                          <motion.span
+                            className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm sm:text-base tabular-nums"
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            transition={{ delay: index * 0.05 + 0.1, type: "spring" }}
+                          >
+                            {rank}
+                          </motion.span>
                         )}
                       </motion.div>
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold">
+                        <h3 className="text-lg font-bold">
                           {teammate.displayName}
                           {teammate.bungieGlobalDisplayNameCode !==
                             undefined && (

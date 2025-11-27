@@ -4,7 +4,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatHours } from "./utils";
-import { useColor } from "@/hooks/useColor";
+import { useColor } from "@/ui/useColor";
 import { DestinyWrappedCard } from "../DestinyWrappedCard";
 import { Swords, Clock, Trophy, MonitorPlay } from "lucide-react";
 
@@ -174,7 +174,7 @@ export function PvpStatsCard({ pvpStats, idx }: PvpStatsCardProps) {
             <motion.span
               className="font-bold text-3xl"
               animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 0.5, delay: 0.3 }}
+              transition={{ duration: 0.5, delay: 0.05 }}
             >
               {pvpStats.wins}
             </motion.span>{" "}
@@ -218,7 +218,7 @@ export function PvpStatsCard({ pvpStats, idx }: PvpStatsCardProps) {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
           className="grid grid-cols-2 gap-4 mb-6"
         >
           <StatItem
@@ -252,7 +252,7 @@ export function PvpStatsCard({ pvpStats, idx }: PvpStatsCardProps) {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
           className="grid grid-cols-3 gap-4"
         >
           <AltStatItem

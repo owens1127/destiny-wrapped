@@ -4,13 +4,13 @@ import React from "react";
 import { motion } from "framer-motion";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatHours } from "./utils";
-import { useColor } from "@/hooks/useColor";
+import { useColor } from "@/ui/useColor";
 import { DestinyWrappedCard } from "../DestinyWrappedCard";
 import { DestinyClass } from "bungie-net-core/enums";
 import { DestinyClass as DestinyClassEnum } from "bungie-net-core/models";
 import { PieChart, Pie, Cell } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
-import { destinyClassName, destinyClassSvg } from "@/lib/classes";
+import { destinyClassName, destinyClassSvg } from "@/config/classes";
 
 interface ClassStatsCardProps {
   idx: number;
@@ -36,7 +36,24 @@ export function ClassStatsCard({
   idx,
 }: ClassStatsCardProps) {
   const colorClass = useColor(idx);
-  const pieData = sortedClassEntries.map(
+  
+  // Recalculate percentages to ensure they add up to 100%
+  const totalTimePlayed = sortedClassEntries.reduce(
+    (sum, [, { timePlayedSeconds }]) => sum + timePlayedSeconds,
+    0
+  );
+  
+  const normalizedEntries = sortedClassEntries.map(([classType, stats]) => [
+    classType,
+    {
+      ...stats,
+      percentTimePlayed: totalTimePlayed > 0 
+        ? (100 * stats.timePlayedSeconds) / totalTimePlayed 
+        : 0,
+    },
+  ]) as typeof sortedClassEntries;
+  
+  const pieData = normalizedEntries.map(
     ([classType, { percentTimePlayed }]) => ({
       name: destinyClassName[classType],
       value: percentTimePlayed,
@@ -44,7 +61,7 @@ export function ClassStatsCard({
     })
   );
 
-  const [mostPlayedClass] = sortedClassEntries[0];
+  const [mostPlayedClass] = normalizedEntries[0];
   const ClassIcon = destinyClassSvg[mostPlayedClass];
 
   // Dynamic title based on the most played class
@@ -91,10 +108,10 @@ export function ClassStatsCard({
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.5 }}
-          className="flex items-stretch justify-center mb-4"
+          className="flex items-center justify-center mb-1 gap-3"
         >
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <ClassIcon className="w-36 h-36 text-white fill-current" />
+          <div className="flex flex-col items-center justify-center gap-1">
+            <ClassIcon className="w-28 h-28 sm:w-32 sm:h-32 text-white fill-current" />
             <div className="text-center text-4xl">
               {destinyClassName[mostPlayedClass]}
             </div>
@@ -102,7 +119,7 @@ export function ClassStatsCard({
           </div>
           <div
             className="flex-1 min-w-0"
-            style={{ width: "100%", height: "300px" }}
+            style={{ width: "100%", height: "250px", maxWidth: "280px" }}
           >
             <ChartContainer config={{}} className="w-full h-full">
               <PieChart>
@@ -128,7 +145,7 @@ export function ClassStatsCard({
           </div>
         </motion.div>
         <motion.div
-          className="space-y-4 mt-8"
+          className="space-y-3 mt-6"
           initial="hidden"
           animate="visible"
           variants={{
@@ -139,38 +156,31 @@ export function ClassStatsCard({
             },
           }}
         >
-          {sortedClassEntries.map(
-            ([classType, { count, timePlayedSeconds, percentTimePlayed }]) => (
-              <motion.div
-                key={classType}
-                className="flex items-center justify-between space-x-4 bg-white/10 backdrop-blur-sm rounded-lg p-4"
-                variants={{
-                  hidden: { opacity: 0, scale: 0.8 },
-                  visible: {
-                    opacity: 1,
-                    scale: 1,
-                    transition: {
-                      type: "spring",
-                      stiffness: 100,
-                      damping: 10,
+          {normalizedEntries.map(
+            ([classType, { count, timePlayedSeconds, percentTimePlayed }]) => {
+              const classColor = CLASS_COLORS[classType] || "#8884d8";
+              return (
+                <motion.div
+                  key={classType}
+                  className="flex items-center justify-between space-x-4 backdrop-blur-sm rounded-lg p-4 border-2"
+                  style={{
+                    backgroundColor: `${classColor}20`,
+                    borderColor: classColor,
+                  }}
+                  variants={{
+                    hidden: { opacity: 0, scale: 0.8 },
+                    visible: {
+                      opacity: 1,
+                      scale: 1,
+                      transition: {
+                        type: "spring",
+                        stiffness: 100,
+                        damping: 10,
+                      },
                     },
-                  },
-                }}
-                whileHover={{ scale: 1.02 }}
-              >
-                <div className="flex items-center space-x-4">
-                  <motion.div
-                    className="w-4 h-4 rounded-full"
-                    style={{
-                      backgroundColor: CLASS_COLORS[classType] || "#8884d8",
-                    }}
-                    animate={{ scale: [1, 1.15, 1] }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      repeatDelay: 2,
-                    }}
-                  />
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                >
                   <div>
                     <h3 className="text-xl font-bold">
                       {destinyClassName[classType]}
@@ -179,12 +189,12 @@ export function ClassStatsCard({
                       {formatHours(timePlayedSeconds)} • {count} activities
                     </p>
                   </div>
-                </div>
-                <div className="text-2xl font-bold">
-                  {percentTimePlayed.toFixed(1)}%
-                </div>
-              </motion.div>
-            )
+                  <div className="text-2xl font-bold">
+                    {percentTimePlayed.toFixed(1)}%
+                  </div>
+                </motion.div>
+              );
+            }
           )}
         </motion.div>
       </CardContent>

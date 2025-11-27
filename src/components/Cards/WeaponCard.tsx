@@ -3,9 +3,9 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useColor } from "@/hooks/useColor";
+import { useColor } from "@/ui/useColor";
 import { DestinyWrappedCard } from "../DestinyWrappedCard";
-import { useGetItemDefinition } from "@/hooks/useGetItemDefinition";
+import { useGetItemDefinition } from "@/items/useGetItemDefinition";
 import Image from "next/image";
 
 interface WeaponUsageStats {
@@ -23,6 +23,7 @@ interface WeaponCardProps {
   killLabel: string;
   noDataMessage: string;
   noDataDownloadMessage: string;
+  compactHeader?: boolean;
 }
 
 export function WeaponCard({
@@ -35,6 +36,7 @@ export function WeaponCard({
   killLabel,
   noDataMessage,
   noDataDownloadMessage,
+  compactHeader = false,
 }: WeaponCardProps) {
   const colorClass = useColor(idx);
   const getItemDefinition = useGetItemDefinition();
@@ -43,7 +45,7 @@ export function WeaponCard({
     weaponStats &&
     weaponStats.weaponKills.size > 0 &&
     weaponStats.topWeapons.length > 0;
-  const topWeapons = hasData ? weaponStats.topWeapons.slice(0, 5) : [];
+  const topWeapons = hasData ? weaponStats.topWeapons.slice(0, 7) : [];
   const totalKills = hasData
     ? Array.from(weaponStats.weaponKills.values()).reduce(
         (sum, kills) => sum + kills,
@@ -64,7 +66,7 @@ export function WeaponCard({
           </CardTitle>
         </motion.div>
       </CardHeader>
-      <CardContent className="relative z-10 px-4 py-6 text-white">
+      <CardContent className="relative z-10 px-4 pt-2 pb-3 text-white">
         {!hasData ? (
           <motion.div
             className="flex flex-col items-center justify-center py-12 text-center"
@@ -79,17 +81,17 @@ export function WeaponCard({
         ) : (
           <>
             <motion.div
-              className="mb-6 text-center"
+              className={`${compactHeader ? 'mb-2' : 'mb-3'} text-center`}
               initial={{ opacity: 0, y: 20, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ type: "spring", stiffness: 120, delay: 0.1 }}
             >
-              <p className="text-xl">
+              <p className={compactHeader ? 'text-lg' : 'text-xl'}>
                 {headerText}{" "}
                 <motion.span
-                  className="font-bold text-3xl"
+                  className={`font-bold ${compactHeader ? 'text-2xl' : 'text-3xl'}`}
                   animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ duration: 0.6, delay: 0.3 }}
+                  transition={{ duration: 0.6, delay: 0.05 }}
                 >
                   {totalKills.toLocaleString()}
                 </motion.span>
@@ -98,7 +100,7 @@ export function WeaponCard({
             </motion.div>
 
             <motion.div
-              className="space-y-4"
+              className="space-y-2.5"
               initial="hidden"
               animate="visible"
               variants={{
@@ -121,7 +123,7 @@ export function WeaponCard({
                 return (
                   <motion.div
                     key={weapon.hash}
-                    className="flex items-center justify-between bg-white/10 backdrop-blur-sm rounded-lg p-4"
+                    className="flex items-center justify-between bg-white/10 backdrop-blur-sm rounded-lg p-2.5"
                     variants={{
                       hidden: { opacity: 0, scale: 0.8 },
                       visible: {
@@ -138,7 +140,7 @@ export function WeaponCard({
                   >
                     <div className="flex items-center space-x-4 flex-1">
                       <motion.div
-                        className="text-2xl font-bold text-yellow-400 min-w-[1rem]"
+                        className="text-xl font-bold text-yellow-400 min-w-[1rem]"
                         animate={{
                           scale: [1, 1.1, 1],
                         }}
@@ -148,7 +150,7 @@ export function WeaponCard({
                       </motion.div>
                       {weaponDef?.displayProperties.icon && (
                         <div
-                          className="relative w-12 h-12 flex-shrink-0"
+                          className="relative w-11 h-11 flex-shrink-0"
                           style={{ transform: `rotate(${randomRotation}deg)` }}
                         >
                           <Image
@@ -161,11 +163,11 @@ export function WeaponCard({
                         </div>
                       )}
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold">
+                        <h3 className="text-lg font-bold">
                           {weaponDef?.displayProperties.name ||
                             "Unknown Weapon"}
                         </h3>
-                        <p className="text-sm opacity-80">
+                        <p className="text-xs opacity-80">
                           {weapon.kills.toLocaleString()} {killLabel} •{" "}
                           {percentage}% of total
                         </p>

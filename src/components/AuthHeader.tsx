@@ -1,10 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useDestinyMembership } from "@/hooks/useDestinyMembership";
+import { useDestinyMembership } from "@/characters/useDestinyMembership";
 import { useBungieSession } from "next-bungie-auth/client";
 import { Skeleton } from "./ui/skeleton";
-import { clearPGCRs } from "@/lib/idb";
+import { clearPGCRs } from "@/api/idb";
 
 export const AuthHeader = () => {
   const session = useBungieSession();

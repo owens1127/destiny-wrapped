@@ -4,9 +4,10 @@ import React from "react";
 import { motion } from "framer-motion";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatHours } from "./utils";
-import { useColor } from "@/hooks/useColor";
-import { useGetActivityDefinition } from "@/hooks/useGetActivityDefinition";
+import { useColor } from "@/ui/useColor";
+import { useGetActivityDefinition } from "@/activities/useGetActivityDefinition";
 import { DestinyWrappedCard } from "../DestinyWrappedCard";
+import { groupActivitiesByName } from "@/stats/activityGrouping";
 import Image from "next/image";
 
 interface Activity {
@@ -18,63 +19,37 @@ interface Activity {
 interface TopActivitiesCardProps {
   idx: number;
   topActivities: Activity[];
+  sortBy: "time" | "runs";
+  title: React.ReactNode;
+  headerText?: React.ReactNode;
 }
 
 export function TopActivitiesCard({
   topActivities,
   idx,
+  sortBy,
+  title,
+  headerText,
 }: TopActivitiesCardProps) {
   const getActivityDefinition = useGetActivityDefinition();
   const colorClass = useColor(idx);
 
   // Group activities by base name (everything before ":")
   const groupedActivities = React.useMemo(() => {
-    const grouped = new Map<
-      string,
-      {
-        baseName: string;
-        hash: number;
-        count: number;
-        timePlayedSeconds: number;
-        displayName: string;
-        maxCount: number; // Track the max count for a single variant
-      }
-    >();
+    const grouped = groupActivitiesByName(
+      topActivities,
+      (hash) => getActivityDefinition(hash)?.displayProperties.name ?? "Unknown"
+    );
 
-    topActivities.forEach(({ hash, count, timePlayedSeconds }) => {
-      const activityDef = getActivityDefinition(hash);
-      const fullName = activityDef?.displayProperties.name ?? "Unknown";
-
-      // Extract base name (everything before ":")
-      const baseName = fullName.split(":")[0].trim();
-
-      const existing = grouped.get(baseName);
-      if (existing) {
-        existing.count += count;
-        existing.timePlayedSeconds += timePlayedSeconds;
-        // Use the hash with more runs for the display
-        if (count > existing.maxCount) {
-          existing.hash = hash;
-          existing.maxCount = count;
-        }
-        // Always use base name for display (without variant suffix)
-        existing.displayName = baseName;
-      } else {
-        grouped.set(baseName, {
-          baseName,
-          hash,
-          count,
-          timePlayedSeconds,
-          displayName: baseName, // Use base name without variant suffix
-          maxCount: count,
-        });
-      }
-    });
-
-    return Array.from(grouped.values())
-      .sort((a, b) => b.timePlayedSeconds - a.timePlayedSeconds)
+    // Sort by time or runs based on prop
+    return grouped
+      .sort((a, b) =>
+        sortBy === "time"
+          ? b.timePlayedSeconds - a.timePlayedSeconds
+          : b.count - a.count
+      )
       .slice(0, 7);
-  }, [topActivities, getActivityDefinition]);
+  }, [topActivities, getActivityDefinition, sortBy]);
 
   return (
     <DestinyWrappedCard className={`bg-gradient-to-br ${colorClass}`}>
@@ -85,79 +60,104 @@ export function TopActivitiesCard({
           transition={{ type: "spring", stiffness: 150 }}
         >
           <CardTitle className="text-4xl font-bold text-center text-white drop-shadow-lg">
-            Your <i>home</i> away from home
+            {title}
           </CardTitle>
         </motion.div>
       </CardHeader>
-      <CardContent className="relative z-10 p-6 text-white">
-        <motion.ol
-          className="space-y-4"
+      <CardContent className="relative z-10 p-4 sm:p-5 text-white overflow-y-auto flex-1">
+        {headerText && (
+          <motion.div
+            className="mb-2 text-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 120, delay: 0.1 }}
+          >
+            <p className="text-xl">{headerText}</p>
+          </motion.div>
+        )}
+        <motion.div
+          className="grid grid-cols-1 gap-2.5"
           initial="hidden"
           animate="visible"
           variants={{
             visible: {
               transition: {
-                staggerChildren: 0.15,
+                staggerChildren: 0.08,
               },
             },
           }}
         >
           {groupedActivities.map(
             ({ hash, count, timePlayedSeconds, displayName }, index) => (
-              <motion.li
+              <motion.div
                 key={hash}
-                className="flex items-center space-x-4"
+                className="bg-white/10 backdrop-blur-sm rounded-lg p-2.5 sm:p-3 group"
                 variants={{
-                  hidden: { opacity: 0, scale: 0.8 },
+                  hidden: { opacity: 0, scale: 0.95, y: 5 },
                   visible: {
                     opacity: 1,
                     scale: 1,
+                    y: 0,
                     transition: {
                       type: "spring",
-                      stiffness: 100,
-                      damping: 10,
+                      stiffness: 150,
+                      damping: 15,
                     },
                   },
                 }}
-                whileHover={{ scale: 1.02 }}
+                whileHover={{ backgroundColor: "rgba(255, 255, 255, 0.15)" }}
               >
-                <motion.span
-                  className="text-2xl font-bold"
-                  initial={{ scale: 0, rotate: -180 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ delay: index * 0.1 + 0.2, type: "spring" }}
-                >
-                  {index + 1}.
-                </motion.span>
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold">{displayName}</h3>
-                  <p className="text-sm opacity-80">
-                    {count} instances • {formatHours(timePlayedSeconds)} played
-                  </p>
+                <div className="flex items-center gap-3">
+                  {/* Rank number */}
+                  <motion.span
+                    className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm sm:text-base tabular-nums"
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ delay: index * 0.05 + 0.1, type: "spring" }}
+                  >
+                    {index + 1}
+                  </motion.span>
+
+                  {/* Activity image */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: index * 0.05 + 0.15, type: "spring" }}
+                    className="relative flex-shrink-0 w-20 h-12 sm:w-24 sm:h-14 rounded-md overflow-hidden ring-1 ring-white/20 group-hover:ring-white/40 transition-all"
+                  >
+                    <Image
+                      src={
+                        "https://www.bungie.net" +
+                        getActivityDefinition(hash)?.pgcrImage
+                      }
+                      fill
+                      unoptimized
+                      alt={
+                        getActivityDefinition(hash)?.displayProperties.name ??
+                        ""
+                      }
+                      className="object-cover"
+                    />
+                  </motion.div>
+
+                  {/* Activity info */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm sm:text-base font-semibold truncate mb-0.5 group-hover:text-yellow-200 transition-colors">
+                      {displayName}
+                    </h3>
+                    <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs opacity-75">
+                      <span className="font-medium">
+                        {count.toLocaleString()} runs
+                      </span>
+                      <span>•</span>
+                      <span>{formatHours(timePlayedSeconds)}</span>
+                    </div>
+                  </div>
                 </div>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0, rotate: 90 }}
-                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                  transition={{ delay: index * 0.1 + 0.3, type: "spring" }}
-                >
-                  <Image
-                    src={
-                      "https://www.bungie.net" +
-                      getActivityDefinition(hash)?.pgcrImage
-                    }
-                    width={16 * 6}
-                    height={9 * 6}
-                    unoptimized
-                    alt={
-                      getActivityDefinition(hash)?.displayProperties.name ?? ""
-                    }
-                    className="rounded-md"
-                  />
-                </motion.div>
-              </motion.li>
+              </motion.div>
             )
           )}
-        </motion.ol>
+        </motion.div>
       </CardContent>
     </DestinyWrappedCard>
   );

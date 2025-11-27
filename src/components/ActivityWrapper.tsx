@@ -1,7 +1,7 @@
 "use client";
 
-import { useActivityHistory } from "@/hooks/useActivityHistory";
-import { useToast } from "@/hooks/useToast";
+import { useActivityHistory } from "@/activities/useActivityHistory";
+import { useToast } from "@/ui/useToast";
 import {
   BungieMembershipType,
   DestinyHistoricalStatsPeriodGroup,

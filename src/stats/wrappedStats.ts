@@ -1,89 +1,75 @@
-import { useMemo, useEffect, useState } from "react";
+import { useMemo } from "react";
 import {
   DestinyActivityModeType,
   DestinyClass,
   DestinyHistoricalStatsPeriodGroup,
   DestinyPostGameCarnageReportData,
 } from "bungie-net-core/models";
-import { getPGCRs } from "@/lib/idb";
-import { activityModeNames } from "@/lib/modes";
-import { getSeason, seasonWeights } from "@/lib/seasons";
-import { new2025Challenges } from "@/lib/challenges";
+import { activityModeNames } from "@/config/modes";
+import { getSeason, seasonWeights } from "@/config/seasons";
+import { new2025Challenges } from "@/config/challenges";
+import {
+  getActivityValue,
+  getActivityStats,
+  isActivityWin,
+  isActivityCompleted,
+} from "./activityUtils";
+import { groupActivitiesBy } from "./activityGrouping";
+import { usePGCRData } from "./pgcrData";
 
-export const useEnhancedWrappedStats = (
+/**
+ * Calculate all wrapped stats from activities
+ */
+export function useWrappedStats(
   activities: (DestinyHistoricalStatsPeriodGroup & {
     characterId: string;
   })[],
   characterMap: Record<string, DestinyClass>
-) => {
-  const [pgcrData, setPgcrData] = useState<
-    Map<string, DestinyPostGameCarnageReportData>
-  >(new Map());
-  const [isLoadingPGCRs, setIsLoadingPGCRs] = useState(true);
-
-  useEffect(() => {
-    const loadPGCRs = async () => {
-      try {
-        setIsLoadingPGCRs(true);
-        const activityIds = activities.map((a) => a.activityDetails.instanceId);
-        const pgcrs = await getPGCRs(activityIds);
-        setPgcrData(pgcrs);
-      } catch (error) {
-        console.error("Failed to load PGCRs:", error);
-      } finally {
-        setIsLoadingPGCRs(false);
-      }
-    };
-
-    loadPGCRs();
-
-    // Listen for PGCR events to refresh data
-    const handlePGCRsChanged = () => {
-      loadPGCRs();
-    };
-
-    window.addEventListener("pgcrs-cleared", handlePGCRsChanged);
-    window.addEventListener("pgcrs-stored", handlePGCRsChanged);
-
-    return () => {
-      window.removeEventListener("pgcrs-cleared", handlePGCRsChanged);
-      window.removeEventListener("pgcrs-stored", handlePGCRsChanged);
-    };
-  }, [activities]);
-
+) {
+  const { pgcrData, isLoadingPGCRs } = usePGCRData(activities);
   return useMemo(() => {
-    // Base stats (always calculated)
-    const groupedByMode = new Map<
-      DestinyActivityModeType,
-      DestinyHistoricalStatsPeriodGroup[]
-    >();
-    const groupedByPrimaryMode = new Map<
-      DestinyActivityModeType,
-      DestinyHistoricalStatsPeriodGroup[]
-    >();
-    const groupedByMonth = new Map<
-      number,
-      DestinyHistoricalStatsPeriodGroup[]
-    >();
-    const groupedByHash = new Map<
-      number,
-      DestinyHistoricalStatsPeriodGroup[]
-    >();
-    const groupedByClass = new Map<
-      DestinyClass,
-      DestinyHistoricalStatsPeriodGroup[]
-    >();
-    const groupedBySeason = new Map<
-      keyof typeof seasonWeights,
-      DestinyHistoricalStatsPeriodGroup[]
-    >();
+    // Filter out activities with more than 18 players
+    const filteredActivities = activities.filter((activity) => {
+      const pgcr = pgcrData.get(activity.activityDetails.instanceId);
+      if (pgcr) {
+        const playerCount = pgcr.entries?.length || 0;
+        return playerCount <= 18;
+      }
+      // If no PGCR data, include it (can't determine player count)
+      return true;
+    });
 
+    // Group activities by various dimensions
+    const groupedByMode = groupActivitiesBy(
+      filteredActivities,
+      (activity) => activity.activityDetails.mode
+    );
+    const groupedByPrimaryMode = groupActivitiesBy(
+      filteredActivities,
+      (activity) => activity.activityDetails.mode
+    );
+    const groupedByMonth = groupActivitiesBy(filteredActivities, (activity) =>
+      new Date(activity.period).getMonth()
+    );
+    const groupedByHash = groupActivitiesBy(
+      filteredActivities,
+      (activity) => activity.activityDetails.directorActivityHash
+    );
+    const groupedByClass = groupActivitiesBy(
+      filteredActivities,
+      (activity) => characterMap[activity.characterId] ?? 3
+    );
+    const groupedBySeason = groupActivitiesBy(filteredActivities, (activity) =>
+      getSeason(new Date(activity.period))
+    );
+
+    // Base stats
     const totalStats = {
       playTime: 0,
       kills: 0,
       deaths: 0,
       assists: 0,
-      count: activities.length,
+      count: filteredActivities.length,
     };
 
     const longestStreak = {
@@ -97,7 +83,6 @@ export const useEnhancedWrappedStats = (
       currentEnd: null as Date | null,
     };
 
-    // Track each raid and dungeon separately
     const newRaidActivitiesByHash = new Map<
       number,
       DestinyHistoricalStatsPeriodGroup[]
@@ -110,12 +95,16 @@ export const useEnhancedWrappedStats = (
     const gambitGames: DestinyHistoricalStatsPeriodGroup[] = [];
     const pvpGames: DestinyHistoricalStatsPeriodGroup[] = [];
 
-    // Enhanced stats (only calculated when PGCR data is available)
+    // PGCR-dependent stats
     const fireteamStats = {
       soloActivities: 0,
       teamActivities: 0,
+      soloTimePlayed: 0,
+      teamTimePlayed: 0,
       averageFireteamSize: 0,
       mostCommonFireteamSize: 0,
+      largestFireteamSize: 0,
+      fireteamSizeDistribution: new Map<number, number>(),
     };
 
     const weaponKills = new Map<number, number>();
@@ -124,10 +113,11 @@ export const useEnhancedWrappedStats = (
       superKills: 0,
       grenadeKills: 0,
       meleeKills: 0,
+      abilityKills: 0,
     };
 
-    const hourCounts = new Array(24).fill(0);
-    const dayOfWeekCounts = new Array(7).fill(0);
+    const hourTimePlayed = new Array(24).fill(0);
+    const dayOfWeekTimePlayed = new Array(7).fill(0);
     const fireteamSizeCounts = new Map<number, number>();
     const teammateCounts = new Map<
       string,
@@ -143,41 +133,69 @@ export const useEnhancedWrappedStats = (
       kills: 0,
       assists: 0,
       deaths: 0,
+      precisionKills: 0,
+      opponentsDefeated: 0,
+      score: 0,
+      orbsDropped: 0,
+      orbsGathered: 0,
+      standing: 0,
+      weaponKillsGrenade: 0,
+      weaponKillsMelee: 0,
+      weaponKillsSuper: 0,
+      weaponKillsAbility: 0,
     };
+    const sixtySevenActivities: Array<{
+      type: "kills" | "assists" | "deaths" | "precisionKills" | "opponentsDefeated" | "score" | "orbsDropped" | "orbsGathered" | "standing" | "weaponKillsGrenade" | "weaponKillsMelee" | "weaponKillsSuper" | "weaponKillsAbility";
+      activity: DestinyHistoricalStatsPeriodGroup & { characterId: string };
+    }> = [];
 
     let activitiesWithPGCR = 0;
 
-    activities.forEach((activity) => {
-      // Base stats (always calculated)
-      const timePlayedSeconds =
-        activity.values["timePlayedSeconds"]?.basic.value ?? 0;
-      totalStats.playTime += timePlayedSeconds;
-      const kills = activity.values["kills"]?.basic.value ?? 0;
-      const deaths = activity.values["deaths"]?.basic.value ?? 0;
-      const assists = activity.values["assists"]?.basic.value ?? 0;
+    // Process all activities
+    filteredActivities.forEach((activity) => {
+      const stats = getActivityStats(activity);
+      totalStats.playTime += stats.timePlayedSeconds;
+      totalStats.kills += stats.kills;
+      totalStats.deaths += stats.deaths;
+      totalStats.assists += stats.assists;
 
-      totalStats.kills += kills;
-      totalStats.deaths += deaths;
-      totalStats.assists += assists;
+      // Track 67 meme moments - check stats from activity history
+      const opponentsDefeated = getActivityValue(activity, "opponentsDefeated");
+      const score = getActivityValue(activity, "score");
+      const standing = getActivityValue(activity, "standing");
 
-      // Track 67 meme moments - count occurrences
-      if (kills === 67) {
+      if (stats.kills === 67) {
         sixtySevenCounts.kills++;
+        sixtySevenActivities.push({ type: "kills", activity });
       }
-      if (assists === 67) {
+      if (stats.assists === 67) {
         sixtySevenCounts.assists++;
+        sixtySevenActivities.push({ type: "assists", activity });
       }
-      if (deaths === 67) {
+      if (stats.deaths === 67) {
         sixtySevenCounts.deaths++;
+        sixtySevenActivities.push({ type: "deaths", activity });
+      }
+      if (opponentsDefeated === 67) {
+        sixtySevenCounts.opponentsDefeated++;
+        sixtySevenActivities.push({ type: "opponentsDefeated", activity });
+      }
+      if (score === 67) {
+        sixtySevenCounts.score++;
+        sixtySevenActivities.push({ type: "score", activity });
+      }
+      if (standing === 67) {
+        sixtySevenCounts.standing++;
+        sixtySevenActivities.push({ type: "standing", activity });
       }
 
-      // Group by mode
+      // Group by mode (all modes)
       activity.activityDetails.modes.forEach((mode) => {
         const existing = groupedByMode.get(mode);
         if (!existing) {
           groupedByMode.set(mode, [activity]);
         } else {
-          groupedByMode.get(mode)!.push(activity);
+          existing.push(activity);
         }
       });
 
@@ -187,7 +205,7 @@ export const useEnhancedWrappedStats = (
       if (!existingModeGroup) {
         groupedByPrimaryMode.set(mode, [activity]);
       } else {
-        groupedByPrimaryMode.get(mode)!.push(activity);
+        existingModeGroup.push(activity);
       }
 
       // Group by month
@@ -196,7 +214,7 @@ export const useEnhancedWrappedStats = (
       if (!existingMonthGroup) {
         groupedByMonth.set(month, [activity]);
       } else {
-        groupedByMonth.get(month)!.push(activity);
+        existingMonthGroup.push(activity);
       }
 
       // Group by hash
@@ -205,7 +223,7 @@ export const useEnhancedWrappedStats = (
       if (!existingHashGroup) {
         groupedByHash.set(hash, [activity]);
       } else {
-        groupedByHash.get(hash)!.push(activity);
+        existingHashGroup.push(activity);
       }
 
       // Group by class
@@ -214,7 +232,7 @@ export const useEnhancedWrappedStats = (
       if (!existingClassGroup) {
         groupedByClass.set(characterClass, [activity]);
       } else {
-        groupedByClass.get(characterClass)!.push(activity);
+        existingClassGroup.push(activity);
       }
 
       // Group by season
@@ -223,13 +241,11 @@ export const useEnhancedWrappedStats = (
       if (!existingSeasonGroup) {
         groupedBySeason.set(season, [activity]);
       } else {
-        groupedBySeason.get(season)!.push(activity);
+        existingSeasonGroup.push(activity);
       }
 
-      // new raid/dungeon activities - track by individual hash
-      const raidChallenge = new2025Challenges.raids.find(
-        (r) => r.hash === hash
-      );
+      // Track raids and dungeons
+      const raidChallenge = new2025Challenges.raids.find((r) => r.hash === hash);
       const dungeonChallenge = new2025Challenges.dungeons.find(
         (d) => d.hash === hash
       );
@@ -250,7 +266,7 @@ export const useEnhancedWrappedStats = (
         }
       }
 
-      // gambit games
+      // Track game modes
       if (mode === 63) {
         gambitGames.push(activity);
       }
@@ -259,8 +275,8 @@ export const useEnhancedWrappedStats = (
         pvpGames.push(activity);
       }
 
-      // longest streak
-      if (timePlayedSeconds > 0) {
+      // Calculate longest streak
+      if (stats.timePlayedSeconds > 0) {
         const date = new Date(activity.period);
         date.setUTCHours(17, 0, 0, 0);
 
@@ -269,7 +285,6 @@ export const useEnhancedWrappedStats = (
           longestStreak.activityCount = 1;
           longestStreak.start = date;
           longestStreak.end = date;
-
           longestStreak.currentDays = 1;
           longestStreak.currentActivityCount = 1;
           longestStreak.currentStart = date;
@@ -300,7 +315,7 @@ export const useEnhancedWrappedStats = (
         }
       }
 
-      // Enhanced stats (only when PGCR data is available)
+      // Process PGCR data if available
       const pgcr = pgcrData.get(activity.activityDetails.instanceId);
       if (pgcr) {
         activitiesWithPGCR++;
@@ -308,6 +323,8 @@ export const useEnhancedWrappedStats = (
         // Fireteam stats
         const entries = pgcr.entries || [];
         const playerCount = entries.length;
+        const timePlayed = getActivityValue(activity, "timePlayedSeconds");
+        
         fireteamSizeCounts.set(
           playerCount,
           (fireteamSizeCounts.get(playerCount) || 0) + 1
@@ -315,8 +332,14 @@ export const useEnhancedWrappedStats = (
 
         if (playerCount === 1) {
           fireteamStats.soloActivities++;
+          fireteamStats.soloTimePlayed += timePlayed;
         } else {
           fireteamStats.teamActivities++;
+          fireteamStats.teamTimePlayed += timePlayed;
+        }
+        
+        if (playerCount > fireteamStats.largestFireteamSize) {
+          fireteamStats.largestFireteamSize = playerCount;
         }
 
         // Find current player's entry
@@ -324,7 +347,7 @@ export const useEnhancedWrappedStats = (
           (entry) => entry.characterId === activity.characterId
         );
 
-        // Track teammates (all other players in the activity)
+        // Track teammates
         entries.forEach((entry) => {
           if (entry.characterId !== activity.characterId) {
             const player = entry.player;
@@ -355,6 +378,47 @@ export const useEnhancedWrappedStats = (
         });
 
         if (currentPlayerEntry) {
+          // Check 67 moments from extended stats
+          if (currentPlayerEntry.extended?.values) {
+            const extendedValues = currentPlayerEntry.extended.values;
+            const precisionKills = extendedValues.precisionKills?.basic?.value ?? 0;
+            const orbsDropped = extendedValues.orbsDropped?.basic?.value ?? 0;
+            const orbsGathered = extendedValues.orbsGathered?.basic?.value ?? 0;
+            const weaponKillsGrenade = extendedValues.weaponKillsGrenade?.basic?.value ?? 0;
+            const weaponKillsMelee = extendedValues.weaponKillsMelee?.basic?.value ?? 0;
+            const weaponKillsSuper = extendedValues.weaponKillsSuper?.basic?.value ?? 0;
+            const weaponKillsAbility = extendedValues.weaponKillsAbility?.basic?.value ?? 0;
+
+            if (precisionKills === 67) {
+              sixtySevenCounts.precisionKills++;
+              sixtySevenActivities.push({ type: "precisionKills", activity });
+            }
+            if (orbsDropped === 67) {
+              sixtySevenCounts.orbsDropped++;
+              sixtySevenActivities.push({ type: "orbsDropped", activity });
+            }
+            if (orbsGathered === 67) {
+              sixtySevenCounts.orbsGathered++;
+              sixtySevenActivities.push({ type: "orbsGathered", activity });
+            }
+            if (weaponKillsGrenade === 67) {
+              sixtySevenCounts.weaponKillsGrenade++;
+              sixtySevenActivities.push({ type: "weaponKillsGrenade", activity });
+            }
+            if (weaponKillsMelee === 67) {
+              sixtySevenCounts.weaponKillsMelee++;
+              sixtySevenActivities.push({ type: "weaponKillsMelee", activity });
+            }
+            if (weaponKillsSuper === 67) {
+              sixtySevenCounts.weaponKillsSuper++;
+              sixtySevenActivities.push({ type: "weaponKillsSuper", activity });
+            }
+            if (weaponKillsAbility === 67) {
+              sixtySevenCounts.weaponKillsAbility++;
+              sixtySevenActivities.push({ type: "weaponKillsAbility", activity });
+            }
+          }
+
           // Track emblem usage
           const emblemHash = currentPlayerEntry.player?.emblemHash;
           if (emblemHash) {
@@ -378,17 +442,13 @@ export const useEnhancedWrappedStats = (
               const weaponHash = weapon.referenceId;
               if (!weaponHash) return;
 
-              // Check for kills in the weapon values
-              // The field name is "uniqueWeaponKills" based on the PGCR structure
               const kills = weapon.values?.uniqueWeaponKills?.basic?.value || 0;
               if (kills > 0) {
-                // Track all weapon kills
                 weaponKills.set(
                   weaponHash,
                   (weaponKills.get(weaponHash) || 0) + kills
                 );
 
-                // Track PvP weapon kills separately
                 if (isPvP) {
                   pvpWeaponKills.set(
                     weaponHash,
@@ -399,7 +459,7 @@ export const useEnhancedWrappedStats = (
             });
           }
 
-          // Ability kills from extended.values (not currentPlayerEntry.values)
+          // Ability kills from extended.values
           const extendedValues = extended?.values || {};
           if (extendedValues.weaponKillsSuper?.basic?.value) {
             abilityStats.superKills +=
@@ -413,27 +473,31 @@ export const useEnhancedWrappedStats = (
             abilityStats.meleeKills +=
               extendedValues.weaponKillsMelee.basic.value;
           }
+          if (extendedValues.weaponKillsAbility?.basic?.value) {
+            abilityStats.abilityKills +=
+              extendedValues.weaponKillsAbility.basic.value;
+          }
         }
 
         // Time of day stats
         const date = new Date(activity.period);
         const hour = date.getHours();
         const dayOfWeek = date.getDay();
-        hourCounts[hour]++;
-        dayOfWeekCounts[dayOfWeek]++;
+        hourTimePlayed[hour] += timePlayed;
+        dayOfWeekTimePlayed[dayOfWeek] += timePlayed;
       }
     });
 
-    // Calculate base stats
+    // Calculate derived stats
     const sortedByTimeInMode = Array.from(groupedByPrimaryMode.entries())
       .sort(
         ([, a], [, b]) =>
           b.reduce(
-            (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
+            (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
             0
           ) -
           a.reduce(
-            (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
+            (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
             0
           )
       )
@@ -441,7 +505,7 @@ export const useEnhancedWrappedStats = (
         mode,
         count: activities.length,
         timePlayedSeconds: activities.reduce(
-          (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
+          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
           0
         ),
         modeName: activityModeNames[mode],
@@ -452,7 +516,7 @@ export const useEnhancedWrappedStats = (
         hash,
         count: activities.length,
         timePlayedSeconds: activities.reduce(
-          (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
+          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
           0
         ),
       })
@@ -463,10 +527,8 @@ export const useEnhancedWrappedStats = (
     );
 
     const topNModes = (n: number) => sortedByTimeInMode.slice(0, n);
-
     const topNActivitiesByPlaytime = (n: number) =>
       sortedByTimeInHash.slice(0, n);
-
     const topNActivitiesByRuns = (n: number) =>
       [...sortedByTimeInHash].sort((a, b) => b.count - a.count).slice(0, n);
 
@@ -475,11 +537,11 @@ export const useEnhancedWrappedStats = (
     ).sort(
       ([, a], [, b]) =>
         b.reduce(
-          (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
+          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
           0
         ) -
         a.reduce(
-          (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
+          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
           0
         )
     )[0] ?? [11, []];
@@ -487,7 +549,7 @@ export const useEnhancedWrappedStats = (
     const sortedClassEntries = Array.from(groupedByClass.entries())
       .map(([classType, activities]) => {
         const timePlayedSeconds = activities.reduce(
-          (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
+          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
           0
         );
         return [
@@ -506,12 +568,12 @@ export const useEnhancedWrappedStats = (
     ).sort(
       ([aName, a], [bName, b]) =>
         a.reduce(
-          (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
+          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
           0
         ) *
           seasonWeights[aName] -
         b.reduce(
-          (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
+          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
           0
         ) *
           seasonWeights[bName]
@@ -520,18 +582,18 @@ export const useEnhancedWrappedStats = (
     const monthlyPlayTimeByDay = new Array(32).fill(0);
     mostPopularMonthEntries.forEach((entry) => {
       monthlyPlayTimeByDay[new Date(entry.period).getDate()] +=
-        entry.values["timePlayedSeconds"]?.basic.value ?? 0;
+        getActivityValue(entry, "timePlayedSeconds");
     });
 
-    // Calculate enhanced stats
+    // Calculate fireteam stats
     if (activitiesWithPGCR > 0) {
       let totalSize = 0;
       fireteamSizeCounts.forEach((count, size) => {
         totalSize += size * count;
+        fireteamStats.fireteamSizeDistribution.set(size, count);
       });
       fireteamStats.averageFireteamSize = totalSize / activitiesWithPGCR;
 
-      // Most common fireteam size
       let maxCount = 0;
       fireteamSizeCounts.forEach((count, size) => {
         if (count > maxCount) {
@@ -541,7 +603,7 @@ export const useEnhancedWrappedStats = (
       });
     }
 
-    // Top weapons (all activities)
+    // Top weapons
     const topWeapons = Array.from(weaponKills.entries())
       .map(([hash, kills]) => ({ hash, kills }))
       .sort((a, b) => b.kills - a.kills)
@@ -555,7 +617,6 @@ export const useEnhancedWrappedStats = (
 
     // Top teammates
     const allTeammates = Array.from(teammateCounts.values());
-
     const topTeammates = allTeammates
       .sort((a, b) => b.count - a.count)
       .slice(0, 10)
@@ -573,24 +634,48 @@ export const useEnhancedWrappedStats = (
         })
       );
 
-    const totalTeammateCount = allTeammates.length;
-
-    // Top 3 emblems (most used)
+    // Top emblems
     const topEmblems = Array.from(emblemCounts.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
       .map(([hash, count]) => ({ hash, count }));
 
-    // Most active hour (default to 12 PM if no data)
-    const maxHourCount = Math.max(...hourCounts);
+    // Most active hour and day (by time played)
+    const maxHourTime = Math.max(...hourTimePlayed);
     const mostActiveHour =
-      maxHourCount > 0 ? hourCounts.indexOf(maxHourCount) : 12;
-    const maxDayCount = Math.max(...dayOfWeekCounts);
+      maxHourTime > 0 ? hourTimePlayed.indexOf(maxHourTime) : 12;
+    const maxDayTime = Math.max(...dayOfWeekTimePlayed);
     const mostActiveDayOfWeek =
-      maxDayCount > 0 ? dayOfWeekCounts.indexOf(maxDayCount) : 0;
+      maxDayTime > 0 ? dayOfWeekTimePlayed.indexOf(maxDayTime) : 0;
+    
+    // Least active hour and day (by time played)
+    const minHourTime = Math.min(...hourTimePlayed.filter(time => time > 0));
+    const leastActiveHour = minHourTime > 0 
+      ? hourTimePlayed.indexOf(minHourTime) 
+      : null;
+    const minDayTime = Math.min(...dayOfWeekTimePlayed.filter(time => time > 0));
+    const leastActiveDayOfWeek = minDayTime > 0
+      ? dayOfWeekTimePlayed.indexOf(minDayTime)
+      : null;
+    
+    // Total time for percentage calculations
+    const totalTimeByHour = hourTimePlayed.reduce((sum, time) => sum + time, 0);
+    const totalTimeByDay = dayOfWeekTimePlayed.reduce((sum, time) => sum + time, 0);
+    
+    // Find peak 3-hour activity window
+    let peakWindowStart = 0;
+    let peakWindowTime = 0;
+    for (let i = 0; i < 24; i++) {
+      const windowTime = hourTimePlayed[i] + 
+                        hourTimePlayed[(i + 1) % 24] + 
+                        hourTimePlayed[(i + 2) % 24];
+      if (windowTime > peakWindowTime) {
+        peakWindowTime = windowTime;
+        peakWindowStart = i;
+      }
+    }
 
     return {
-      // Base stats (always available)
       topNModes,
       topNActivitiesByPlaytime,
       topNActivitiesByRuns,
@@ -605,7 +690,7 @@ export const useEnhancedWrappedStats = (
         id: mostPopularMonthId,
         count: mostPopularMonthEntries.length,
         timePlayedSeconds: mostPopularMonthEntries.reduce(
-          (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
+          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
           0
         ),
         playtimeByDay: monthlyPlayTimeByDay,
@@ -614,7 +699,7 @@ export const useEnhancedWrappedStats = (
         name: leastPopularSeasonName,
         count: leastPopularSeasonActs.length,
         timePlayedSeconds: leastPopularSeasonActs.reduce(
-          (acc, e) => acc + (e.values["timePlayedSeconds"]?.basic.value ?? 0),
+          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
           0
         ),
       },
@@ -627,14 +712,9 @@ export const useEnhancedWrappedStats = (
             {
               name: dungeon.name,
               count: activities.length,
-              completed: activities.filter(
-                (a) =>
-                  a.values["completed"]?.basic.value === 1 &&
-                  a.values["completionReason"]?.basic.value === 0
-              ).length,
+              completed: activities.filter(isActivityCompleted).length,
               timePlayed: activities.reduce(
-                (acc, e) =>
-                  (e.values["timePlayedSeconds"]?.basic.value ?? 0) + acc,
+                (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
                 0
               ),
             },
@@ -649,14 +729,9 @@ export const useEnhancedWrappedStats = (
             {
               name: raid.name,
               count: activities.length,
-              completed: activities.filter(
-                (a) =>
-                  a.values["completed"]?.basic.value === 1 &&
-                  a.values["completionReason"]?.basic.value === 0
-              ).length,
+              completed: activities.filter(isActivityCompleted).length,
               timePlayed: activities.reduce(
-                (acc, e) =>
-                  (e.values["timePlayedSeconds"]?.basic.value ?? 0) + acc,
+                (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
                 0
               ),
             },
@@ -665,49 +740,41 @@ export const useEnhancedWrappedStats = (
       ),
       gambitStats: {
         games: gambitGames.length,
-        wins: gambitGames.filter(
-          (a) =>
-            a.values["completed"]?.basic.value === 1 &&
-            a.values["standing"]?.basic.value === 0
-        ).length,
+        wins: gambitGames.filter(isActivityWin).length,
         kills: gambitGames.reduce(
-          (acc, e) => (e.values["kills"]?.basic.value ?? 0) + acc,
+          (acc, e) => acc + getActivityValue(e, "kills"),
           0
         ),
         deaths: gambitGames.reduce(
-          (acc, e) => (e.values["deaths"]?.basic.value ?? 0) + acc,
+          (acc, e) => acc + getActivityValue(e, "deaths"),
           0
         ),
         assists: gambitGames.reduce(
-          (acc, e) => (e.values["assists"]?.basic.value ?? 0) + acc,
+          (acc, e) => acc + getActivityValue(e, "assists"),
           0
         ),
         timePlayed: gambitGames.reduce(
-          (acc, e) => (e.values["timePlayedSeconds"]?.basic.value ?? 0) + acc,
+          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
           0
         ),
       },
       pvpStats: {
         games: pvpGames.length,
-        wins: pvpGames.filter(
-          (a) =>
-            a.values["completed"]?.basic.value === 1 &&
-            a.values["standing"]?.basic.value === 0
-        ).length,
+        wins: pvpGames.filter(isActivityWin).length,
         kills: pvpGames.reduce(
-          (acc, e) => (e.values["kills"]?.basic.value ?? 0) + acc,
+          (acc, e) => acc + getActivityValue(e, "kills"),
           0
         ),
         deaths: pvpGames.reduce(
-          (acc, e) => (e.values["deaths"]?.basic.value ?? 0) + acc,
+          (acc, e) => acc + getActivityValue(e, "deaths"),
           0
         ),
         assists: pvpGames.reduce(
-          (acc, e) => (e.values["assists"]?.basic.value ?? 0) + acc,
+          (acc, e) => acc + getActivityValue(e, "assists"),
           0
         ),
         timePlayed: pvpGames.reduce(
-          (acc, e) => (e.values["timePlayedSeconds"]?.basic.value ?? 0) + acc,
+          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
           0
         ),
       },
@@ -718,8 +785,10 @@ export const useEnhancedWrappedStats = (
           (groupedByMode.get(7)?.length ?? 0) /
           (groupedByMode.get(5)?.length ?? 1),
       },
-      // Enhanced stats (always returned, but may be empty if no PGCR data)
-      fireteamStats,
+      fireteamStats: {
+        ...fireteamStats,
+        fireteamSizeDistribution: Array.from(fireteamStats.fireteamSizeDistribution.entries()).map(([size, count]) => ({ size, count })),
+      },
       weaponStats: {
         weaponKills,
         topWeapons,
@@ -730,22 +799,31 @@ export const useEnhancedWrappedStats = (
       },
       teammateStats: {
         teammates: topTeammates,
-        totalCount: totalTeammateCount,
+        totalCount: allTeammates.length,
       },
       abilityStats,
       timeOfDayStats: {
         mostActiveHour,
         mostActiveDayOfWeek,
+        leastActiveHour,
+        leastActiveDayOfWeek,
+        mostActiveHourTime: maxHourTime,
+        mostActiveDayTime: maxDayTime,
+        leastActiveHourTime: minHourTime > 0 ? minHourTime : null,
+        leastActiveDayTime: minDayTime > 0 ? minDayTime : null,
+        totalTimeByHour,
+        totalTimeByDay,
+        peakWindowStart,
+        peakWindowTime,
       },
       favoriteEmblems: topEmblems.length > 0 ? topEmblems : null,
       sixtySevenStats: {
         counts: sixtySevenCounts,
-        totalKills: totalStats.kills,
-        totalAssists: totalStats.assists,
-        totalDeaths: totalStats.deaths,
+        totalCount: sixtySevenActivities.length,
+        activities: sixtySevenActivities,
       },
       hasPGCRData: pgcrData.size > 0,
       isLoadingPGCRs,
     };
   }, [activities, characterMap, pgcrData, isLoadingPGCRs]);
-};
+}

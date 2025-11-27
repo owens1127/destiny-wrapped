@@ -34,6 +34,7 @@ export function PvpWeaponsCard({
       killLabel="PvP kills"
       noDataMessage="No PvP weapon usage data available"
       noDataDownloadMessage="Download PGCR data to see your PvP weapon stats"
+      compactHeader={true}
     />
   );
 }

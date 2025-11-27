@@ -1,6 +1,6 @@
 import { DestinyInventoryItemDefinition } from "bungie-net-core/models";
 import { useCallback } from "react";
-import { useDestinyManifestComponent } from "./useDestinyManifestComponent";
+import { useDestinyManifestComponent } from "@/manifest/useDestinyManifestComponent";
 
 export const useGetItemDefinition = () => {
   const { isSuccess, data } = useDestinyManifestComponent(

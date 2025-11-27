@@ -8,7 +8,7 @@ import { getServerSession } from "./api/auth";
 import { cookies } from "next/headers";
 import { ThemeButton } from "@/components/ThemeButton";
 import { AuthHeader } from "@/components/AuthHeader";
-import { ColorContextProvider } from "@/hooks/useColor";
+import { ColorContextProvider } from "@/ui/useColor";
 import { QueryClientProviderWrapper } from "@/components/QueryClientProviderWrapper";
 import { Footer } from "@/components/Footer";
 

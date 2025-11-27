@@ -1,5 +1,5 @@
 import { useQueries } from "@tanstack/react-query";
-import { useBungie } from "./useBungie";
+import { useBungie } from "@/api/useBungie";
 import { useAuthorizedBungieSession } from "next-bungie-auth/client";
 import {
   BungieMembershipType,

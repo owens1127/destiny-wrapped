@@ -3,9 +3,9 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useColor } from "@/hooks/useColor";
+import { useColor } from "@/ui/useColor";
 import { DestinyWrappedCard } from "../DestinyWrappedCard";
-import { useGetItemDefinition } from "@/hooks/useGetItemDefinition";
+import { useGetItemDefinition } from "@/items/useGetItemDefinition";
 import { Award } from "lucide-react";
 import Image from "next/image";
 
@@ -86,7 +86,7 @@ export function FavoriteEmblemCard({
                           type: "spring",
                           stiffness: 100,
                           damping: 10,
-                          delay: 0.2 + index * 0.2,
+                          delay: 0.05 + index * 0.2,
                         }}
                         className="relative w-full max-w-[280px] sm:max-w-[320px] md:max-w-[400px]"
                         style={{
@@ -138,7 +138,7 @@ export function FavoriteEmblemCard({
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{
                           type: "spring",
-                          delay: 0.3 + index * 0.2,
+                          delay: 0.05 + index * 0.2,
                         }}
                         className="absolute"
                         style={{
@@ -177,7 +177,7 @@ export function FavoriteEmblemCard({
                     className="text-center"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.4 + index * 0.2 }}
+                    transition={{ delay: 0.1 + index * 0.2 }}
                   >
                     <motion.h3
                       className={`font-bold mb-1 ${

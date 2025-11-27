@@ -4,11 +4,11 @@ import React from "react";
 import { motion } from "framer-motion";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatHours } from "./utils";
-import { useColor } from "@/hooks/useColor";
+import { useColor } from "@/ui/useColor";
 import { DestinyWrappedCard } from "../DestinyWrappedCard";
 import Image from "next/image";
-import { useGetActivityDefinition } from "@/hooks/useGetActivityDefinition";
-import { new2025Challenges } from "@/lib/challenges";
+import { useGetActivityDefinition } from "@/activities/useGetActivityDefinition";
+import { new2025Challenges } from "@/config/challenges";
 
 interface ActivityStats {
   name: string;
@@ -47,7 +47,7 @@ const ChallengeBlock = ({
         className="text-4xl font-bold"
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
-        transition={{ type: "spring", delay: 0.2 }}
+        transition={{ type: "spring", delay: 0.05 }}
       >
         {stats.completed}
       </motion.p>
