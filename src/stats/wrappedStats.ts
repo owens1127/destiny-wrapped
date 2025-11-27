@@ -26,10 +26,38 @@ export function useWrappedStats(
 ) {
   const { pgcrData, isLoadingPGCRs } = usePGCRData(activities);
   return useMemo(() => {
+    // Group activities by instanceId, tracking all characters that played each instance
+    // This allows us to count stats once per instance but include all classes for class grouping
+    const activitiesByInstance = new Map<
+      string,
+      {
+        activity: DestinyHistoricalStatsPeriodGroup & { characterId: string };
+        characterIds: Set<string>;
+      }
+    >();
+
+    activities.forEach((activity) => {
+      const instanceId = activity.activityDetails.instanceId;
+      const existing = activitiesByInstance.get(instanceId);
+      if (existing) {
+        existing.characterIds.add(activity.characterId);
+      } else {
+        activitiesByInstance.set(instanceId, {
+          activity,
+          characterIds: new Set([activity.characterId]),
+        });
+      }
+    });
+
+    // Create deduplicated list for stats (one per instance)
+    const deduplicatedActivities = Array.from(
+      activitiesByInstance.values()
+    ).map((entry) => entry.activity);
+
     // Filter out activities with more than 18 players
     const filteredActivities: (DestinyHistoricalStatsPeriodGroup & {
       characterId: string;
-    })[] = activities.filter((activity) => {
+    })[] = deduplicatedActivities.filter((activity) => {
       const pgcr = pgcrData.get(activity.activityDetails.instanceId);
       if (pgcr) {
         const playerCount = pgcr.entries?.length || 0;
@@ -55,10 +83,29 @@ export function useWrappedStats(
       filteredActivities,
       (activity) => activity.activityDetails.directorActivityHash
     );
-    const groupedByClass = groupActivitiesBy(
-      filteredActivities,
-      (activity) => characterMap[activity.characterId] ?? 3
-    );
+
+    // For class grouping, include activity for each class that played it
+    const groupedByClass = new Map<
+      DestinyClass,
+      (DestinyHistoricalStatsPeriodGroup & { characterId: string })[]
+    >();
+    filteredActivities.forEach((activity) => {
+      const instanceId = activity.activityDetails.instanceId;
+      const instanceData = activitiesByInstance.get(instanceId);
+      if (instanceData) {
+        // Add this activity to each class that played it
+        instanceData.characterIds.forEach((charId) => {
+          const charClass = characterMap[charId] ?? 3;
+          const existing = groupedByClass.get(charClass);
+          if (existing) {
+            existing.push(activity);
+          } else {
+            groupedByClass.set(charClass, [activity]);
+          }
+        });
+      }
+    });
+
     const groupedBySeason = groupActivitiesBy(filteredActivities, (activity) =>
       getSeason(new Date(activity.period))
     );
@@ -335,7 +382,7 @@ export function useWrappedStats(
       if (pgcr) {
         activitiesWithPGCR++;
 
-        // Fireteam stats
+        // Fireteam stats (only count once per instance)
         const entries = pgcr.entries || [];
         const playerCount = entries.length;
         const timePlayed = getActivityValue(activity, "timePlayedSeconds");
@@ -357,45 +404,64 @@ export function useWrappedStats(
           fireteamStats.largestFireteamSize = playerCount;
         }
 
-        // Find current player's entry
-        const currentPlayerEntry = entries.find(
-          (entry) => entry.characterId === activity.characterId
-        );
+        // Get all characters that played this instance
+        const instanceId = activity.activityDetails.instanceId;
+        const instanceData = activitiesByInstance.get(instanceId);
+        const characterIdsForInstance = instanceData
+          ? Array.from(instanceData.characterIds)
+          : [activity.characterId];
 
-        // Track teammates
-        entries.forEach((entry) => {
-          if (entry.characterId !== activity.characterId) {
-            const player = entry.player;
-            if (player && player.destinyUserInfo) {
-              const membershipId = player.destinyUserInfo.membershipId;
-              const displayName =
-                player.destinyUserInfo.bungieGlobalDisplayName ||
-                player.destinyUserInfo.displayName ||
-                "Unknown";
-              const bungieGlobalDisplayNameCode =
-                player.destinyUserInfo.bungieGlobalDisplayNameCode;
+        // Process character-specific data for all characters that played this instance
+        // This ensures we capture emblems, weapon kills, etc. for all characters
+        characterIdsForInstance.forEach((charId) => {
+          const playerEntry = entries.find(
+            (entry) => entry.characterId === charId
+          );
 
-              if (membershipId) {
-                const existing = teammateCounts.get(membershipId);
-                if (existing) {
-                  existing.count++;
-                } else {
-                  teammateCounts.set(membershipId, {
-                    displayName,
-                    membershipId,
-                    count: 1,
-                    bungieGlobalDisplayNameCode,
-                  });
+          if (!playerEntry) return;
+
+          // Get player's membershipId to filter out self for teammate tracking
+          const playerMembershipId =
+            playerEntry.player?.destinyUserInfo?.membershipId;
+
+          // Track teammates (only once per instance, using first character's perspective)
+          if (charId === activity.characterId) {
+            entries.forEach((entry) => {
+              const player = entry.player;
+              if (player && player.destinyUserInfo) {
+                const membershipId = player.destinyUserInfo.membershipId;
+
+                // Filter out current player by membershipId
+                if (membershipId !== playerMembershipId) {
+                  const displayName =
+                    player.destinyUserInfo.bungieGlobalDisplayName ||
+                    player.destinyUserInfo.displayName ||
+                    "Unknown";
+                  const bungieGlobalDisplayNameCode =
+                    player.destinyUserInfo.bungieGlobalDisplayNameCode;
+
+                  if (membershipId) {
+                    const existing = teammateCounts.get(membershipId);
+                    if (existing) {
+                      existing.count++;
+                    } else {
+                      teammateCounts.set(membershipId, {
+                        displayName,
+                        membershipId,
+                        count: 1,
+                        bungieGlobalDisplayNameCode,
+                      });
+                    }
+                  }
                 }
               }
-            }
+            });
           }
-        });
 
-        if (currentPlayerEntry) {
-          // Check 67 moments from extended stats
-          if (currentPlayerEntry.extended?.values) {
-            const extendedValues = currentPlayerEntry.extended.values;
+          // Process character-specific data (emblems, weapon kills, etc.)
+          // Check 67 moments from extended stats (only count once per instance)
+          if (charId === activity.characterId && playerEntry.extended?.values) {
+            const extendedValues = playerEntry.extended.values;
             const precisionKills =
               extendedValues.precisionKills?.basic?.value ?? 0;
             const orbsDropped = extendedValues.orbsDropped?.basic?.value ?? 0;
@@ -445,8 +511,8 @@ export function useWrappedStats(
             }
           }
 
-          // Track emblem usage
-          const emblemHash = currentPlayerEntry.player?.emblemHash;
+          // Track emblem usage for all characters (each character can have different emblem)
+          const emblemHash = playerEntry.player?.emblemHash;
           if (emblemHash) {
             emblemCounts.set(
               emblemHash,
@@ -457,8 +523,8 @@ export function useWrappedStats(
           // Check if this is a PvP activity
           const isPvP = activity.activityDetails.modes.includes(5);
 
-          // Weapon kills from extended stats
-          const extended = currentPlayerEntry.extended;
+          // Weapon kills from extended stats (track for all characters)
+          const extended = playerEntry.extended;
           if (
             extended?.weapons &&
             Array.isArray(extended.weapons) &&
@@ -485,7 +551,7 @@ export function useWrappedStats(
             });
           }
 
-          // Ability kills from extended.values
+          // Ability kills from extended.values (track for all characters)
           const extendedValues = extended?.values || {};
           if (extendedValues.weaponKillsSuper?.basic?.value) {
             abilityStats.superKills +=
@@ -503,7 +569,7 @@ export function useWrappedStats(
             abilityStats.abilityKills +=
               extendedValues.weaponKillsAbility.basic.value;
           }
-        }
+        });
 
         // Time of day stats
         const date = new Date(activity.period);

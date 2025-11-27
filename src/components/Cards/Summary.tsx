@@ -235,7 +235,7 @@ export function SummaryCard({
                   className="relative"
                   style={{
                     aspectRatio: "1 / 1",
-                    opacity: 0.8,
+                    opacity: 0.4,
                   }}
                 >
                   <Image
@@ -272,7 +272,7 @@ export function SummaryCard({
                 delay: 0.1,
               },
             }}
-            className="absolute -top-2 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
+            className="absolute -top-2 bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center shadow-lg"
             style={{ width: "140px", left: "8px" }}
           >
             <p className="text-xs opacity-80 mb-1">Total Hours</p>
@@ -303,7 +303,7 @@ export function SummaryCard({
                 delay: 0.05,
               },
             }}
-            className="absolute top-0 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
+            className="absolute top-0 bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center shadow-lg"
             style={{ width: "140px", right: "-8px" }}
           >
             <p className="text-xs opacity-80 mb-1">Activities</p>
@@ -340,7 +340,7 @@ export function SummaryCard({
                   delay: 0.1,
                 },
               }}
-              className="absolute top-1/2 -translate-y-1/2 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
+              className="absolute top-1/2 -translate-y-1/2 bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center shadow-lg"
               style={{ width: "160px", left: "12px" }}
             >
               <p className="text-xs opacity-80 mb-1">Best Friend</p>
@@ -384,7 +384,7 @@ export function SummaryCard({
                 delay: 0.1,
               },
             }}
-            className="absolute top-[25%] bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
+            className="absolute top-[25%] bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center shadow-lg"
             style={{ width: "150px", left: "-4px" }}
           >
             <p className="text-xs opacity-80 mb-1">Favorite Category</p>
@@ -419,8 +419,8 @@ export function SummaryCard({
                 delay: 0.05,
               },
             }}
-            className="absolute bottom-0 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg z-20"
-            style={{ width: "130px", left: "2px" }}
+            className="absolute bottom-0 bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center shadow-lg z-20"
+            style={{ width: "130px", left: "-8px" }}
           >
             <p className="text-xs opacity-80 mb-1">Kills</p>
             <motion.div
@@ -455,8 +455,8 @@ export function SummaryCard({
                 delay: 0.15,
               },
             }}
-            className="absolute bottom-0 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
-            style={{ width: "130px", right: "-6px" }}
+            className="absolute bottom-0 bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center shadow-lg"
+            style={{ width: "130px", right: "-12px" }}
           >
             <p className="text-xs opacity-80 mb-1">Deaths</p>
             <motion.div
@@ -492,7 +492,7 @@ export function SummaryCard({
                   delay: 0.1,
                 },
               }}
-              className="absolute top-[20%] left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
+              className="absolute top-[20%] left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center shadow-lg"
               style={{ width: "180px" }}
             >
               <p className="text-xs opacity-80 mb-1">Top Weapon</p>
@@ -532,7 +532,7 @@ export function SummaryCard({
                 delay: 0.15,
               },
             }}
-            className="absolute bottom-1/4 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center shadow-lg"
+            className="absolute bottom-1/4 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center shadow-lg"
             style={{ width: "180px" }}
           >
             <p className="text-xs opacity-80 mb-1">Played</p>
@@ -566,7 +566,7 @@ export function SummaryCard({
                 },
               }}
               className="absolute bottom-0 bg-white/10 backdrop-blur-sm rounded-lg p-2 text-center shadow-lg"
-              style={{ width: "130px", left: "calc(50% - 70px)" }}
+              style={{ width: "130px", left: "calc(50% - 58px)" }}
             >
               <p className="text-[10px] opacity-80 mb-0.5">Longest Streak</p>
               <motion.div

@@ -160,58 +160,46 @@ export function CardCarousel({ children, className }: CardCarouselProps) {
   return (
     <div className={cn("relative w-full", className)}>
       {/* Carousel Container */}
-      <div className="relative overflow-hidden rounded-lg">
-        <AnimatePresence initial={false} custom={direction} mode="wait">
+      <div className="relative overflow-hidden rounded-lg min-h-[768px]">
+        <AnimatePresence initial={false} custom={direction}>
           <motion.div
             key={currentIndex}
             custom={direction}
             variants={slideVariants}
-            initial="enter"
+            initial={isInitialized ? "enter" : false}
             animate="center"
             exit="exit"
             transition={{
-              x: { type: "spring", stiffness: 600, damping: 50, mass: 0.8 },
-              opacity: { duration: 0.15 },
-              scale: { duration: 0.15 },
+              x: { type: "spring", stiffness: 800, damping: 40, mass: 0.5 },
+              opacity: { duration: 0.1 },
+              scale: { duration: 0.1 },
             }}
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.2}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
-            className="w-full"
+            className="absolute inset-0 w-full"
             style={{ touchAction: "pan-x" }}
           >
             {validChildren[currentIndex]}
           </motion.div>
         </AnimatePresence>
-
-        {/* Navigation Arrows - Always visible */}
-        {totalCards > 1 && (
-          <>
-            <button
-              onClick={prevSlide}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full p-2 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-              aria-label="Previous card"
-              disabled={isDragging}
-            >
-              <ChevronLeft className="w-6 h-6 text-white" />
-            </button>
-            <button
-              onClick={nextSlide}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full p-2 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-              aria-label="Next card"
-              disabled={isDragging}
-            >
-              <ChevronRight className="w-6 h-6 text-white" />
-            </button>
-          </>
-        )}
       </div>
 
-      {/* Progress Indicators */}
+      {/* Progress Indicators with Navigation Arrows */}
       {totalCards > 1 && (
         <div className="flex items-center justify-center gap-2 mt-6">
+          {/* Navigation - Previous */}
+          <button
+            onClick={prevSlide}
+            className="bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full p-2 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            aria-label="Previous card"
+            disabled={isDragging}
+          >
+            <ChevronLeft className="w-5 h-5 text-white" />
+          </button>
+
           {/* Progress Dots */}
           <div className="flex items-center gap-2">
             {validChildren.map((_, index) => (
@@ -228,6 +216,16 @@ export function CardCarousel({ children, className }: CardCarouselProps) {
               />
             ))}
           </div>
+
+          {/* Navigation - Next */}
+          <button
+            onClick={nextSlide}
+            className="bg-black/50 hover:bg-black/70 backdrop-blur-sm rounded-full p-2 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            aria-label="Next card"
+            disabled={isDragging}
+          >
+            <ChevronRight className="w-5 h-5 text-white" />
+          </button>
         </div>
       )}
 
