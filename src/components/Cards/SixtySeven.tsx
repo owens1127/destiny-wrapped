@@ -268,7 +268,7 @@ export function SixtySevenCard({ sixtySevenStats, idx }: SixtySevenCardProps) {
           transition={{ type: "spring", stiffness: 150 }}
         >
           <CardTitle className="text-3xl font-bold text-center text-white drop-shadow-lg">
-            Six Seven
+            <i>Six-Seven</i>
           </CardTitle>
         </motion.div>
       </CardHeader>
