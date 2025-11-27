@@ -147,9 +147,9 @@ export function TopActivitiesCard({
                     </h3>
                     <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs opacity-75">
                       {sortBy === "runs" ? (
-                        <span className="font-medium">
-                          {count.toLocaleString()} runs
-                        </span>
+                      <span className="font-medium">
+                        {count.toLocaleString()} runs
+                      </span>
                       ) : (
                         <span className="font-medium">
                           {formatHours(timePlayedSeconds)}

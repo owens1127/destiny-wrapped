@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 import { CustomSessionProvider } from "@/components/SessionProvider";
@@ -12,6 +11,7 @@ import { HomeButton } from "@/components/HomeButton";
 import { ColorContextProvider } from "@/ui/useColor";
 import { QueryClientProviderWrapper } from "@/components/QueryClientProviderWrapper";
 import { Footer } from "@/components/Footer";
+import { PostHogRouter } from "@/components/PostHogRouter";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,10 +41,10 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background`}
       >
-        <Analytics />
         <QueryClientProviderWrapper>
           <ColorContextProvider>
             <CustomSessionProvider serverSession={serverSession}>
+              <PostHogRouter />
               <header>
                 <div className="flex flex-col gap-3 items-end p-4">
                   <AuthHeader />

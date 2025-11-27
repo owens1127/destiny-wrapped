@@ -18,6 +18,7 @@ import {
   DestinyPostGameCarnageReportData,
 } from "bungie-net-core/models";
 import { motion } from "framer-motion";
+import { trackEvent } from "@/lib/posthog-client";
 
 interface PGCRDownloadProps {
   activities: (DestinyHistoricalStatsPeriodGroup & {
@@ -223,15 +224,18 @@ export function PGCRDownload({
     setIsDownloading(true);
     setProgress(0);
 
+    // Track download start
+    const downloadStartTime = Date.now();
+    const existingPGCRs = await getActivitiesWithPGCRs();
+    const missingIds = activityIds.filter((id) => !existingPGCRs.has(id));
+
+    trackEvent("pgcr_download_started", { count: missingIds.length });
+
     // Create abort controller for cancellation
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
 
     try {
-      // Get the list of missing IDs (activities that don't have PGCRs)
-      const existingPGCRs = await getActivitiesWithPGCRs();
-      const missingIds = activityIds.filter((id) => !existingPGCRs.has(id));
-
       // Initialize the counter with current stored count
       const currentStoredCount = activityIds.filter((id) =>
         existingPGCRs.has(id)
@@ -336,6 +340,18 @@ export function PGCRDownload({
         console.error("Failed to download PGCRs:", error);
         failed = missingIds.length;
       }
+
+      // Track download completion with metrics
+      const downloadEndTime = Date.now();
+      const downloadTimeSeconds = (downloadEndTime - downloadStartTime) / 1000;
+
+      trackEvent("pgcr_download_completed", {
+        count: downloaded,
+        failed: failed,
+        time_seconds: downloadTimeSeconds,
+        avg_time_per_pgcr:
+          downloaded > 0 ? downloadTimeSeconds / downloaded : 0,
+      });
 
       if (failed > 0) {
         toast({

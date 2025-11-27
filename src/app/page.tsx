@@ -50,8 +50,12 @@ export default function Home() {
     }
   }, [toast, charactersQuery.isError, charactersQuery.error]);
 
-  if (membershipQuery.isPending || charactersQuery.isPending) {
-    return <LoadingWithInfo />;
+  if (membershipQuery.isPending) {
+    return <LoadingWithInfo state="profile" />;
+  }
+
+  if (charactersQuery.isPending) {
+    return <LoadingWithInfo state="characters" />;
   }
 
   if (membershipQuery.isError || charactersQuery.isError) {
@@ -63,7 +67,7 @@ export default function Home() {
       destinyMembershipId={membershipQuery.data.membershipId}
       membershipType={membershipQuery.data.membershipType}
       characterIds={charactersQuery.data.characterIds}
-      fallback={<LoadingWithInfo />}
+      fallback={<LoadingWithInfo state="activities" />}
       noActivities={<div className="text-center">{":("}</div>}
       render={(activities) => (
         <IntroScreen

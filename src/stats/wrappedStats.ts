@@ -426,36 +426,36 @@ export function useWrappedStats(
 
           // Track teammates (only once per instance, using first character's perspective)
           if (charId === activity.characterId) {
-            entries.forEach((entry) => {
-              const player = entry.player;
-              if (player && player.destinyUserInfo) {
-                const membershipId = player.destinyUserInfo.membershipId;
+        entries.forEach((entry) => {
+            const player = entry.player;
+            if (player && player.destinyUserInfo) {
+              const membershipId = player.destinyUserInfo.membershipId;
 
                 // Filter out current player by membershipId
                 if (membershipId !== playerMembershipId) {
-                  const displayName =
-                    player.destinyUserInfo.bungieGlobalDisplayName ||
-                    player.destinyUserInfo.displayName ||
-                    "Unknown";
-                  const bungieGlobalDisplayNameCode =
-                    player.destinyUserInfo.bungieGlobalDisplayNameCode;
+              const displayName =
+                player.destinyUserInfo.bungieGlobalDisplayName ||
+                player.destinyUserInfo.displayName ||
+                "Unknown";
+              const bungieGlobalDisplayNameCode =
+                player.destinyUserInfo.bungieGlobalDisplayNameCode;
 
-                  if (membershipId) {
-                    const existing = teammateCounts.get(membershipId);
-                    if (existing) {
-                      existing.count++;
-                    } else {
-                      teammateCounts.set(membershipId, {
-                        displayName,
-                        membershipId,
-                        count: 1,
-                        bungieGlobalDisplayNameCode,
-                      });
-                    }
-                  }
+              if (membershipId) {
+                const existing = teammateCounts.get(membershipId);
+                if (existing) {
+                  existing.count++;
+                } else {
+                  teammateCounts.set(membershipId, {
+                    displayName,
+                    membershipId,
+                    count: 1,
+                    bungieGlobalDisplayNameCode,
+                  });
                 }
               }
-            });
+            }
+          }
+        });
           }
 
           // Process character-specific data (emblems, weapon kills, etc.)

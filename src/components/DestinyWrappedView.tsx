@@ -6,6 +6,7 @@ import { memo, useMemo } from "react";
 import { activityModeNames } from "@/config/modes";
 import { useWrappedStats } from "@/stats";
 import { useDestinyManifestComponent } from "@/manifest/useDestinyManifestComponent";
+import { trackEvent } from "@/lib/posthog-client";
 import { ModesCard } from "./Cards/Modes";
 import { TopActivitiesCard } from "./Cards/TopActivities";
 import { TopActivitiesByRunsCard } from "./Cards/TopActivitiesByRuns";
@@ -157,6 +158,9 @@ function KofiCard({ idx }: { idx: number }) {
               href="https://ko-fi.com/newo1"
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => {
+                trackEvent("kofi_button_clicked", { location: "card" });
+              }}
               className="relative inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#13C3FF] via-[#0ea5e9] to-[#13C3FF] bg-[length:200%_100%] hover:bg-[length:200%_100%] text-white rounded-xl transition-all font-bold text-lg shadow-2xl hover:shadow-[#13C3FF]/50 hover:scale-110 overflow-hidden group"
               style={{
                 backgroundPosition: "0% 50%",

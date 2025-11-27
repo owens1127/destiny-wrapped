@@ -79,7 +79,7 @@ export function AbilityKillsCard({
 
   // Calculate rotations and positions for creative layout
   const getRotation = (index: number) => {
-    const rotations = [-6, 4, -8];
+    const rotations = [-3, 2, -4];
     return rotations[index % 3];
   };
 
@@ -96,7 +96,7 @@ export function AbilityKillsCard({
     <DestinyWrappedCard className={`bg-gradient-to-br ${colorClass} relative`}>
       <CardHeader className="relative z-10">
         <motion.div
-          initial={{ opacity: 0, scale: 0.8, rotate: -2 }}
+          initial={{ opacity: 0, scale: 0.8, rotate: -1 }}
           animate={{ opacity: 1, scale: 1, rotate: 0 }}
           transition={{ type: "spring", stiffness: 150 }}
         >
@@ -124,15 +124,15 @@ export function AbilityKillsCard({
             {/* Hero stat - off-center, tilted */}
             <motion.div
               className="relative mb-2"
-              initial={{ opacity: 0, scale: 0.8, rotate: -2 }}
-              animate={{ opacity: 1, scale: 1, rotate: -2 }}
+              initial={{ opacity: 0, scale: 0.8, rotate: -1 }}
+              animate={{ opacity: 1, scale: 1, rotate: -1 }}
               transition={{ type: "spring", stiffness: 120, delay: 0.1 }}
               style={{ transformOrigin: "top left" }}
             >
               <div className="relative" style={{ left: "5%", top: "10px" }}>
                 <motion.p
                   className="text-xs opacity-60 mb-0.5 font-medium tracking-wider uppercase"
-                  style={{ transform: "rotate(-1deg)" }}
+                  style={{ transform: "rotate(-0.5deg)" }}
                 >
                   Total ability eliminations
                 </motion.p>
@@ -140,11 +140,11 @@ export function AbilityKillsCard({
                   className="font-black text-2xl block leading-none"
                   style={{
                     textShadow: "2px 2px 0px rgba(0,0,0,0.3)",
-                    transform: "rotate(-2deg)",
+                    transform: "rotate(-1deg)",
                   }}
                   animate={{
                     scale: [1, 1.01, 1],
-                    rotate: [-2, -1, -2],
+                    rotate: [-1, -0.5, -1],
                   }}
                   transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
                 >
@@ -168,7 +168,7 @@ export function AbilityKillsCard({
                     initial={{
                       opacity: 0,
                       y: 50,
-                      rotate: rotation + (isLeft ? -5 : 5),
+                      rotate: rotation + (isLeft ? -2 : 2),
                       scale: 0.8,
                     }}
                     animate={{
@@ -221,14 +221,14 @@ export function AbilityKillsCard({
                             width: "28px",
                             height: "28px",
                             transform: `rotate(${
-                              -rotation + (isLeft ? -10 : 10)
+                              -rotation + (isLeft ? -5 : 5)
                             }deg)`,
                           }}
                           animate={{
                             rotate: [
-                              -rotation + (isLeft ? -10 : 10),
-                              -rotation + (isLeft ? -6 : 6),
-                              -rotation + (isLeft ? -10 : 10),
+                              -rotation + (isLeft ? -5 : 5),
+                              -rotation + (isLeft ? -3 : 3),
+                              -rotation + (isLeft ? -5 : 5),
                             ],
                             scale: [1, 1.06, 1],
                           }}
@@ -257,7 +257,7 @@ export function AbilityKillsCard({
                           className="text-xs font-bold uppercase tracking-wider mb-0.5 opacity-80 text-center"
                           style={{
                             transform: `rotate(${
-                              -rotation + (isLeft ? 1 : -1)
+                              -rotation + (isLeft ? 0.5 : -0.5)
                             }deg)`,
                           }}
                         >
@@ -296,7 +296,7 @@ export function AbilityKillsCard({
                           className="inline-block"
                           style={{
                             transform: `rotate(${
-                              -rotation + (isLeft ? 1.5 : -1.5)
+                              -rotation + (isLeft ? 0.75 : -0.75)
                             }deg)`,
                           }}
                         >
@@ -327,8 +327,8 @@ export function AbilityKillsCard({
             >
               <motion.span
                 className="text-4xl font-black"
-                style={{ transform: "rotate(8deg)" }}
-                animate={{ rotate: [8, 10, 8] }}
+                style={{ transform: "rotate(4deg)" }}
+                animate={{ rotate: [4, 5, 4] }}
                 transition={{ duration: 4, repeat: Infinity }}
               >
                 {totalAbilityKills.toLocaleString().slice(0, 1)}

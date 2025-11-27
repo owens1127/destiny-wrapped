@@ -2,6 +2,7 @@
 
 import { ActivityWrapper } from "@/components/ActivityWrapper";
 import { DestinyWrappedView } from "@/components/DestinyWrappedView";
+import { LoadingWithInfo } from "@/components/LoadingWithInfo";
 import { useDestinyCharacters } from "@/characters/useDestinyCharacters";
 import { useDestinyManifestComponent } from "@/manifest/useDestinyManifestComponent";
 import { useDestinyMembership } from "@/characters/useDestinyMembership";
@@ -9,17 +10,6 @@ import { useToast } from "@/ui/useToast";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useBungieSession } from "next-bungie-auth/client";
-
-const LoadingActivities = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <div className="text-white text-xl mb-2">Loading activities...</div>
-        <div className="text-white/60 text-sm">Fetching your activity history</div>
-      </div>
-    </div>
-  );
-};
 
 export default function WrappedPage() {
   const router = useRouter();
@@ -100,8 +90,12 @@ export default function WrappedPage() {
     return null;
   }
 
-  if (membershipQuery.isPending || charactersQuery.isPending) {
-    return <LoadingActivities />;
+  if (membershipQuery.isPending) {
+    return <LoadingWithInfo state="profile" />;
+  }
+
+  if (charactersQuery.isPending) {
+    return <LoadingWithInfo state="characters" />;
   }
 
   if (membershipQuery.isError || charactersQuery.isError) {
@@ -113,7 +107,7 @@ export default function WrappedPage() {
       destinyMembershipId={membershipQuery.data.membershipId}
       membershipType={membershipQuery.data.membershipType}
       characterIds={charactersQuery.data.characterIds}
-      fallback={<LoadingActivities />}
+      fallback={<LoadingWithInfo state="activities" />}
       noActivities={<div className="text-center">{":("}</div>}
       render={(activities) => (
         <DestinyWrappedView

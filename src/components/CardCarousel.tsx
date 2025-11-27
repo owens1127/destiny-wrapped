@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { cn } from "@/ui/utils";
 
 interface CardCarouselProps {
@@ -15,7 +15,6 @@ const SWIPE_THRESHOLD = 50;
 
 export function CardCarousel({ children, className }: CardCarouselProps) {
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   const validChildren = React.Children.toArray(children).filter(Boolean);
   const totalCards = validChildren.length;
@@ -50,29 +49,28 @@ export function CardCarousel({ children, className }: CardCarouselProps) {
 
   // Update URL when currentIndex changes (from user action)
   // Convert 0-based internal index to 1-based URL index
-  const updateUrl = useCallback(
-    (index: number) => {
-      isUpdatingUrlRef.current = true;
-      const params = new URLSearchParams(searchParams.toString());
-      // Convert 0-based to 1-based for URL
-      const urlIndex = index + 1;
-      if (urlIndex === 1) {
-        // First card (index 0) doesn't need card param
-        params.delete("card");
-      } else {
-        params.set("card", urlIndex.toString());
-      }
-      const newUrl = params.toString()
-        ? `?${params.toString()}`
-        : window.location.pathname;
-      router.replace(newUrl, { scroll: false });
-      // Reset flag after URL update completes
-      setTimeout(() => {
-        isUpdatingUrlRef.current = false;
-      }, 50);
-    },
-    [searchParams, router]
-  );
+  // Using window.history.replaceState to avoid any server requests
+  const updateUrl = useCallback((index: number) => {
+    isUpdatingUrlRef.current = true;
+    const params = new URLSearchParams(window.location.search);
+    // Convert 0-based to 1-based for URL
+    const urlIndex = index + 1;
+    if (urlIndex === 1) {
+      // First card (index 0) doesn't need card param
+      params.delete("card");
+    } else {
+      params.set("card", urlIndex.toString());
+    }
+    const newUrl = params.toString()
+      ? `${window.location.pathname}?${params.toString()}`
+      : window.location.pathname;
+    // Use window.history directly to avoid any Next.js router overhead
+    window.history.replaceState({}, "", newUrl);
+    // Reset flag after URL update completes
+    setTimeout(() => {
+      isUpdatingUrlRef.current = false;
+    }, 50);
+  }, []);
 
   // Sync with URL changes (browser back/forward) - but not when we're updating it ourselves
   useEffect(() => {
