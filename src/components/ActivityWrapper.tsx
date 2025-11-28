@@ -1,7 +1,7 @@
 "use client";
 
-import { useActivityHistory } from "@/hooks/useActivityHistory";
-import { useToast } from "@/hooks/useToast";
+import { useActivityHistory } from "@/activities/useActivityHistory";
+import { useToast } from "@/ui/useToast";
 import {
   BungieMembershipType,
   DestinyHistoricalStatsPeriodGroup,
@@ -31,7 +31,9 @@ export const ActivityWrapper = (props: {
     if (isError) {
       toast({
         title: "Error fetching activity history",
-        description: error!.message,
+        description:
+          error?.message ||
+          "Failed to load your activity history. Please try refreshing the page.",
         variant: "destructive",
       });
     }

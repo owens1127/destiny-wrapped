@@ -6,7 +6,7 @@ import {
 } from "next-bungie-auth/client";
 import { ReactNode } from "react";
 import { NextBungieAuthSessionResponse } from "next-bungie-auth/types";
-import { useToast } from "@/hooks/useToast";
+import { useToast } from "@/ui/useToast";
 import { Unauthorized } from "@/components/Unauthorized";
 import { BungieHttpClientProvider } from "./BungieHttpClientProvider";
 

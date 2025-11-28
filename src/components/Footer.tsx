@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { Github, Twitch, Twitter, Youtube } from "lucide-react";
 import Image from "next/image";
+import { trackEvent } from "@/lib/posthog-client";
 
 export const Footer = () => {
   return (
@@ -42,7 +45,14 @@ export const Footer = () => {
           >
             <Twitch className="w-6 h-6 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-00 transition-colors" />
           </Link>
-          <a href="https://ko-fi.com/T6T117OK7S" target="_blank">
+          <a
+            href="https://ko-fi.com/T6T117OK7S"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => {
+              trackEvent("kofi_button_clicked", { location: "footer" });
+            }}
+          >
             <Image
               width={580}
               height={146}

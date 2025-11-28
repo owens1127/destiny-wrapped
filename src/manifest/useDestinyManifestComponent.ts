@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useBungie } from "./useBungie";
+import { useBungie } from "@/api/useBungie";
 import { useDestinyManifest } from "./useDestinyManifest";
 import { AllDestinyManifestComponents } from "bungie-net-core/manifest";
 

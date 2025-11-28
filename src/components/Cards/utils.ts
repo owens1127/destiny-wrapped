@@ -7,3 +7,9 @@ export function formatHours(seconds: number): string {
 
   return `${hours} hours`;
 }
+
+export function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+}

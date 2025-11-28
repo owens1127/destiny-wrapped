@@ -1,16 +1,18 @@
 "use client";
 
 import { ActivityWrapper } from "@/components/ActivityWrapper";
-import { DestinyWrapped } from "@/components/DestinyWrapped";
-import { PageSkeleton } from "@/components/PageSkeleton";
+import { IntroScreen } from "@/components/IntroScreen";
+import { LoadingWithInfo } from "@/components/LoadingWithInfo";
 
-import { useDestinyCharacters } from "@/hooks/useDestinyCharacters";
-import { useDestinyManifestComponent } from "@/hooks/useDestinyManifestComponent";
-import { useDestinyMembership } from "@/hooks/useDestinyMembership";
-import { useToast } from "@/hooks/useToast";
+import { useDestinyCharacters } from "@/characters/useDestinyCharacters";
+import { useDestinyManifestComponent } from "@/manifest/useDestinyManifestComponent";
+import { useDestinyMembership } from "@/characters/useDestinyMembership";
+import { useToast } from "@/ui/useToast";
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
   // preloading
   useDestinyManifestComponent("DestinyActivityDefinition");
   const { toast } = useToast();
@@ -48,8 +50,12 @@ export default function Home() {
     }
   }, [toast, charactersQuery.isError, charactersQuery.error]);
 
-  if (membershipQuery.isPending || charactersQuery.isPending) {
-    return <PageSkeleton />;
+  if (membershipQuery.isPending) {
+    return <LoadingWithInfo state="profile" />;
+  }
+
+  if (charactersQuery.isPending) {
+    return <LoadingWithInfo state="characters" />;
   }
 
   if (membershipQuery.isError || charactersQuery.isError) {
@@ -61,20 +67,15 @@ export default function Home() {
       destinyMembershipId={membershipQuery.data.membershipId}
       membershipType={membershipQuery.data.membershipType}
       characterIds={charactersQuery.data.characterIds}
-      fallback={<PageSkeleton />}
+      fallback={<LoadingWithInfo state="activities" />}
       noActivities={<div className="text-center">{":("}</div>}
       render={(activities) => (
-        <DestinyWrapped
+        <IntroScreen
           activities={activities}
-          characterMap={charactersQuery.data.characterClasses}
-          displayName={
-            <>
-              <span>{membershipQuery.data.bungieGlobalDisplayName}</span>
-              <span className="text-gray-300 opacity-80">
-                #{membershipQuery.data.bungieGlobalDisplayNameCode}
-              </span>
-            </>
-          }
+          onStart={() => {
+            sessionStorage.setItem("wrapped-started", "true");
+            router.push("/wrapped");
+          }}
         />
       )}
     />
