@@ -12,7 +12,10 @@ import {
   isActivityWin,
   isActivityCompleted,
 } from "./activityUtils";
-import { groupActivitiesBy } from "./activityGrouping";
+import {
+  groupActivitiesBy,
+  deduplicateActivitiesByInstanceId,
+} from "./activityGrouping";
 import { usePGCRData } from "./pgcrData";
 
 /**
@@ -28,18 +31,7 @@ export function useWrappedStats(
   return useMemo(() => {
     // First, verify and deduplicate input activities by instanceId
     // This is a safety check in case useActivityHistory didn't fully deduplicate
-    const inputDeduplication = new Map<
-      string,
-      DestinyHistoricalStatsPeriodGroup & { characterId: string }
-    >();
-    activities.forEach((activity) => {
-      const instanceId = activity.activityDetails.instanceId;
-      // Keep the first occurrence of each instanceId
-      if (!inputDeduplication.has(instanceId)) {
-        inputDeduplication.set(instanceId, activity);
-      }
-    });
-    const deduplicatedInput = Array.from(inputDeduplication.values());
+    const deduplicatedInput = deduplicateActivitiesByInstanceId(activities);
 
     // Group activities by instanceId, tracking all characters that played each instance
     // This allows us to count stats once per instance but include all classes for class grouping
@@ -100,25 +92,13 @@ export function useWrappedStats(
     );
 
     // For class grouping, assign each activity instance to exactly one class
-    // Note: useActivityHistory already deduplicates by instanceId, but we add this check
-    // as a safety measure and to ensure correct character assignment for class stats.
-    // Each instance should only be counted once, assigned to the class of the character in the activity record.
-    // This ensures class times add up to total playtime (no double-counting).
+    // filteredActivities is already deduplicated, so we can directly assign each activity to its class
     const groupedByClass = new Map<
       DestinyClass,
       (DestinyHistoricalStatsPeriodGroup & { characterId: string })[]
     >();
-    const seenInstanceIds = new Set<string>();
 
     filteredActivities.forEach((activity) => {
-      const instanceId = activity.activityDetails.instanceId;
-
-      // Safety check: only count each instance once (should already be deduplicated by useActivityHistory)
-      if (seenInstanceIds.has(instanceId)) {
-        return;
-      }
-      seenInstanceIds.add(instanceId);
-
       // Assign to the class of the character in this activity record
       const charClass = characterMap[activity.characterId] ?? 3;
       const existing = groupedByClass.get(charClass);
@@ -376,15 +356,18 @@ export function useWrappedStats(
           longestStreak.currentEnd = date;
         } else {
           if (longestStreak.currentStart!.getTime() === date.getTime()) {
+            // Same day - increment activity count
             longestStreak.currentActivityCount++;
           } else if (
-            longestStreak.currentStart!.getTime() ===
-            date.getTime() + 86_400_000
+            date.getTime() ===
+            longestStreak.currentStart!.getTime() + 86_400_000
           ) {
+            // Next consecutive day - extend streak
             longestStreak.currentActivityCount++;
             longestStreak.currentDays++;
-            longestStreak.currentStart = date;
+            longestStreak.currentEnd = date;
           } else {
+            // Gap in streak - start new streak
             longestStreak.currentDays = 1;
             longestStreak.currentActivityCount = 1;
             longestStreak.currentStart = date;
@@ -604,6 +587,7 @@ export function useWrappedStats(
     });
 
     // Calculate derived stats
+    // filteredActivities is already deduplicated, so grouped activities are also deduplicated
     const sortedByTimeInMode = Array.from(groupedByPrimaryMode.entries())
       .sort(
         ([, a], [, b]) =>
@@ -658,29 +642,18 @@ export function useWrappedStats(
         a.reduce((acc, e) => acc + getActivityValue(e, "timePlayedSeconds"), 0)
     )[0] ?? [11, []];
 
-    // Calculate class stats - ensure we're using deduplicated activities
+    // Calculate class stats
+    // filteredActivities is already deduplicated, so class activities are also deduplicated
     const sortedClassEntries = Array.from(groupedByClass.entries())
       .map(([classType, activities]) => {
-        // Double-check: ensure no duplicate instances in this class's activities
-        const uniqueActivities = new Map<string, (typeof activities)[0]>();
-        activities.forEach((activity) => {
-          const instanceId = activity.activityDetails.instanceId;
-          if (!uniqueActivities.has(instanceId)) {
-            uniqueActivities.set(instanceId, activity);
-          }
-        });
-
-        const deduplicatedClassActivities = Array.from(
-          uniqueActivities.values()
-        );
-        const timePlayedSeconds = deduplicatedClassActivities.reduce(
+        const timePlayedSeconds = activities.reduce(
           (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
           0
         );
         return [
           classType,
           {
-            count: deduplicatedClassActivities.length,
+            count: activities.length,
             timePlayedSeconds,
             percentTimePlayed: (100 * timePlayedSeconds) / totalStats.playTime,
           },
@@ -836,13 +809,17 @@ export function useWrappedStats(
       newDungeonActivities: Object.fromEntries(
         new2025Challenges.dungeons.map((dungeon) => {
           const activities = newDungeonActivitiesByHash.get(dungeon.hash) || [];
+          // Deduplicate by instanceId to avoid double-counting time
+          const deduplicatedActivities =
+            deduplicateActivitiesByInstanceId(activities);
           return [
             dungeon.hash,
             {
               name: dungeon.name,
-              count: activities.length,
-              completed: activities.filter(isActivityCompleted).length,
-              timePlayed: activities.reduce(
+              count: deduplicatedActivities.length,
+              completed:
+                deduplicatedActivities.filter(isActivityCompleted).length,
+              timePlayed: deduplicatedActivities.reduce(
                 (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
                 0
               ),
@@ -853,13 +830,17 @@ export function useWrappedStats(
       newRaidActivities: Object.fromEntries(
         new2025Challenges.raids.map((raid) => {
           const activities = newRaidActivitiesByHash.get(raid.hash) || [];
+          // Deduplicate by instanceId to avoid double-counting time
+          const deduplicatedActivities =
+            deduplicateActivitiesByInstanceId(activities);
           return [
             raid.hash,
             {
               name: raid.name,
-              count: activities.length,
-              completed: activities.filter(isActivityCompleted).length,
-              timePlayed: activities.reduce(
+              count: deduplicatedActivities.length,
+              completed:
+                deduplicatedActivities.filter(isActivityCompleted).length,
+              timePlayed: deduplicatedActivities.reduce(
                 (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
                 0
               ),

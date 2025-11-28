@@ -95,3 +95,36 @@ export function calculateGroupedStats(
     count: activities.length,
   };
 }
+
+/**
+ * Deduplicate activities by instanceId, keeping the first occurrence of each instance.
+ * This ensures each activity instance is only counted once, preventing double-counting
+ * of time and stats when the same activity appears multiple times (e.g., from different characters).
+ */
+export function deduplicateActivitiesByInstanceId<
+  T extends DestinyHistoricalStatsPeriodGroup
+>(activities: T[]): T[] {
+  const uniqueActivities = new Map<string, T>();
+  activities.forEach((activity) => {
+    const instanceId = activity.activityDetails.instanceId;
+    if (!uniqueActivities.has(instanceId)) {
+      uniqueActivities.set(instanceId, activity);
+    }
+  });
+  return Array.from(uniqueActivities.values());
+}
+
+/**
+ * Calculate time played from activities, ensuring each instance is only counted once.
+ * This is a safe wrapper that deduplicates before summing time.
+ */
+export function calculateTimePlayed(
+  activities: DestinyHistoricalStatsPeriodGroup[]
+): number {
+  const deduplicated = deduplicateActivitiesByInstanceId(activities);
+  return deduplicated.reduce(
+    (acc, activity) =>
+      acc + (activity.values?.timePlayedSeconds?.basic?.value ?? 0),
+    0
+  );
+}
