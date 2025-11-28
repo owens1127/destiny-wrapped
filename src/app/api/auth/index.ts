@@ -9,4 +9,5 @@ export const {
   clientSecret: process.env.BUNGIE_CLIENT_SECRET!,
   baseCookieName: "__destiny-wrapped",
   generateState: () => crypto.randomUUID(),
+  generateCallbackUrl: (req) => req.nextUrl.origin,
 });

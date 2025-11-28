@@ -4,10 +4,11 @@ import { trackSignIn, trackSignOut } from "@/lib/posthog-server";
 import { cookies } from "next/headers";
 
 export async function GET(req: NextRequest) {
+  // Callback loop prevention is handled in generateCallbackUrl in auth/index.ts
   const response = await catchAllHandler.GET(req);
+  const url = new URL(req.url);
 
   // Track sign-in only on successful OAuth callback (GET with code parameter)
-  const url = new URL(req.url);
   const isCallback =
     url.searchParams.has("code") && url.pathname.includes("/callback");
 
