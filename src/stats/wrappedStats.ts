@@ -362,7 +362,7 @@ export function useWrappedStats(
             date.getTime() ===
             longestStreak.currentEnd!.getTime() - 86_400_000
           ) {
-            // Previous consecutive day - extend streak backwards
+            // Previous consecutive day - extend streak to include older day
             longestStreak.currentActivityCount++;
             longestStreak.currentDays++;
             longestStreak.currentEnd = date;
@@ -377,6 +377,7 @@ export function useWrappedStats(
           if (longestStreak.currentDays > longestStreak.numDays) {
             longestStreak.numDays = longestStreak.currentDays;
             longestStreak.activityCount = longestStreak.currentActivityCount;
+            // currentEnd = oldest date (streak start), currentStart = newest date (streak end)
             longestStreak.start = longestStreak.currentEnd;
             longestStreak.end = longestStreak.currentStart;
           }
