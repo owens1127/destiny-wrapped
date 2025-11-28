@@ -355,14 +355,14 @@ export function useWrappedStats(
           longestStreak.currentStart = date;
           longestStreak.currentEnd = date;
         } else {
-          if (longestStreak.currentStart!.getTime() === date.getTime()) {
+          if (longestStreak.currentEnd!.getTime() === date.getTime()) {
             // Same day - increment activity count
             longestStreak.currentActivityCount++;
           } else if (
             date.getTime() ===
-            longestStreak.currentStart!.getTime() + 86_400_000
+            longestStreak.currentEnd!.getTime() - 86_400_000
           ) {
-            // Next consecutive day - extend streak
+            // Previous consecutive day - extend streak backwards
             longestStreak.currentActivityCount++;
             longestStreak.currentDays++;
             longestStreak.currentEnd = date;
@@ -377,8 +377,8 @@ export function useWrappedStats(
           if (longestStreak.currentDays > longestStreak.numDays) {
             longestStreak.numDays = longestStreak.currentDays;
             longestStreak.activityCount = longestStreak.currentActivityCount;
-            longestStreak.start = longestStreak.currentStart;
-            longestStreak.end = longestStreak.currentEnd;
+            longestStreak.start = longestStreak.currentEnd;
+            longestStreak.end = longestStreak.currentStart;
           }
         }
       }
