@@ -1,5 +1,5 @@
 import posthog from "posthog-js";
-import { identifyUser } from "@/lib/posthog-client";
+import { identifyUser } from "@/analytics/posthog-client";
 
 /**
  * Gets a cookie value by name

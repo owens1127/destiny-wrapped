@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useDestinyMembership } from "@/characters/useDestinyMembership";
 import { useBungieSession } from "next-bungie-auth/client";
 import { Skeleton } from "./ui/skeleton";
-import { clearPGCRs } from "@/api/idb";
+import { clearPGCRs } from "@/storage/idb";
 import { useToast } from "@/ui/useToast";
 import posthog from "posthog-js";
 

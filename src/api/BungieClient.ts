@@ -17,8 +17,7 @@ import {
   DestinyPostGameCarnageReportData,
 } from "bungie-net-core/models";
 
-const BATCH_SIZE = 50;
-const BATCH_DELAY_MS = 750;
+const MAX_CONCURRENT_REQUESTS = 20;
 
 export class BungieHttpClient {
   private platformHttp =
@@ -210,21 +209,27 @@ export class BungieHttpClient {
     ).then((res) => res.Response);
   }
 
-  async getPostGameCarnageReports(params: {
+  /**
+   * Stream PGCRs individually as they complete.
+   * Yields each individual PGCR as it arrives, allowing for real-time processing.
+   * All requests are processed with rate limiting (50 per second).
+   */
+  async *getPostGameCarnageReportsStream(params: {
     accessToken: string;
-    activityIds: string[];
-    onProgress?: (progress: number) => void;
+    activityIds: Set<string>;
     signal?: AbortSignal;
-    onPGCRReceived?: (
-      pgcrs: Map<string, DestinyPostGameCarnageReportData>,
-      periodMap?: Map<string, string>
-    ) => Promise<void> | void;
-    periodMap?: Map<string, string>;
-  }): Promise<Map<string, DestinyPostGameCarnageReportData>> {
-    // Batch mode: 50 requests per second
-
-    const results = new Map<string, DestinyPostGameCarnageReportData>();
-    const total = params.activityIds.length;
+  }): AsyncGenerator<
+    {
+      activityId: string;
+      pgcr: DestinyPostGameCarnageReportData;
+      progress: number;
+      completed: number;
+      total: number;
+    },
+    void,
+    unknown
+  > {
+    const total = params.activityIds.size;
     let completedCount = 0;
 
     // Check if cancelled
@@ -239,14 +244,17 @@ export class BungieHttpClient {
       activityId: string,
       retryCount = 0,
       maxRetries = 3
-    ): Promise<DestinyPostGameCarnageReportData | null> => {
+    ): Promise<{
+      activityId: string;
+      pgcr: DestinyPostGameCarnageReportData | null;
+    }> => {
       try {
         checkCancelled();
         const pgcr = await this.getPostGameCarnageReport({
           accessToken: params.accessToken,
           activityId,
         });
-        return pgcr;
+        return { activityId, pgcr };
       } catch (error) {
         // If cancelled, rethrow to stop processing
         if (params.signal?.aborted) {
@@ -269,74 +277,113 @@ export class BungieHttpClient {
             `Failed to fetch PGCR for ${activityId} after ${maxRetries} retries:`,
             error
           );
-          return null;
+          return { activityId, pgcr: null };
         }
       }
     };
 
-    // Process requests in batches
-    for (let i = 0; i < params.activityIds.length; i += BATCH_SIZE) {
+    let allEnqueued = false;
+    const requestTrackers = new Map<
+      string,
+      Promise<{
+        activityId: string;
+        pgcr: DestinyPostGameCarnageReportData | null;
+      }>
+    >();
+    const enqueueRequests = async () => {
+      // Enqueue requests, keeping no more than MAX_CONCURRENT_REQUESTS in flight
+      for (const activityId of params.activityIds.values()) {
+        if (!activityId) break;
+
+        while (requestTrackers.size >= MAX_CONCURRENT_REQUESTS) {
+          await new Promise((resolve) => setTimeout(resolve, 15));
+        }
+
+        requestTrackers.set(
+          activityId,
+          processRequest(activityId).catch((error) => {
+            // Individual request failures are already handled in processRequest
+            console.error(`Unexpected error processing ${activityId}:`, error);
+            return { activityId, pgcr: null };
+          })
+        );
+      }
+
+      allEnqueued = true;
+    };
+
+    void enqueueRequests();
+
+    const getActivePromises = () => Array.from(requestTrackers.values());
+
+    while (true) {
       try {
         checkCancelled();
       } catch {
-        // If cancelled, stop processing
         break;
       }
 
-      const batch = params.activityIds.slice(i, i + BATCH_SIZE);
-
-      // Process batch concurrently - failures won't stop other requests
-      const batchPromises = batch.map((activityId) =>
-        processRequest(activityId).catch((error) => {
-          // Individual request failures are already handled in processRequest
-          // This catch ensures Promise.allSettled gets a result even if processRequest throws unexpectedly
-          console.error(`Unexpected error processing ${activityId}:`, error);
-          return null;
-        })
-      );
-
-      const batchResults = await Promise.allSettled(batchPromises);
-
-      // Collect successful results for batch storage
-      const batchToStore = new Map<string, DestinyPostGameCarnageReportData>();
-
-      for (let index = 0; index < batchResults.length; index++) {
-        const result = batchResults[index];
-        if (result.status === "fulfilled" && result.value) {
-          const activityId = batch[index];
-          const pgcr = result.value;
-          results.set(activityId, pgcr);
-          batchToStore.set(activityId, pgcr);
-        }
-
-        // Update progress as each request completes (success or failure)
-        completedCount++;
-        if (params.onProgress) {
-          params.onProgress((completedCount / total) * 100);
-        }
-      }
-
-      // Store batch of PGCRs - errors here won't stop the download
-      if (batchToStore.size > 0 && params.onPGCRReceived) {
-        try {
-          // Call callback with batch
-          await params.onPGCRReceived(batchToStore, params.periodMap);
-        } catch (error) {
-          console.error(`Failed to store batch of PGCRs:`, error);
-          // Continue processing even if storage fails
-        }
-      }
-
-      // Wait before next batch (unless it's the last batch)
-      if (i + BATCH_SIZE < params.activityIds.length) {
-        try {
-          checkCancelled();
-          await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
-        } catch {
-          // If cancelled during wait, stop processing
+      // If no active requests, wait for enqueueing to catch up
+      const activePromises = getActivePromises();
+      if (activePromises.length === 0) {
+        if (!allEnqueued) {
+          // Wait a bit for enqueueRequests to add more requests
+          await new Promise((resolve) => setTimeout(resolve, 5));
+          continue;
+        } else {
+          // All enqueued and no active requests means we're done
           break;
         }
       }
+      // Wait for any request to complete
+      const completed = await Promise.race(activePromises);
+
+      // Remove the completed promise
+      requestTrackers.delete(completed.activityId);
+
+      // Update progress
+      completedCount++;
+      const progress = (completedCount / total) * 100;
+
+      // Yield individual PGCR if successful
+      if (completed.pgcr) {
+        yield {
+          activityId: completed.activityId,
+          pgcr: completed.pgcr,
+          progress,
+          completed: completedCount,
+          total,
+        };
+      }
+    }
+  }
+
+  async getPostGameCarnageReports(params: {
+    accessToken: string;
+    activityIds: Set<string>;
+    signal?: AbortSignal;
+  }): Promise<Map<string, DestinyPostGameCarnageReportData>> {
+    // Stream individual requests and accumulate results
+    const results = new Map<string, DestinyPostGameCarnageReportData>();
+
+    try {
+      for await (const {
+        activityId,
+        pgcr,
+      } of this.getPostGameCarnageReportsStream({
+        accessToken: params.accessToken,
+        activityIds: params.activityIds,
+        signal: params.signal,
+      })) {
+        results.set(activityId, pgcr);
+      }
+    } catch (error) {
+      // Re-throw cancellation errors
+      if (error instanceof Error && error.message === "Download cancelled") {
+        throw error;
+      }
+      // For other errors, return what we have so far
+      console.error("Error during PGCR download:", error);
     }
 
     return results;

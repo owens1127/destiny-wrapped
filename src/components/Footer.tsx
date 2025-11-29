@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Github, Twitch, Twitter, Youtube } from "lucide-react";
 import Image from "next/image";
-import { trackEvent } from "@/lib/posthog-client";
+import { trackEvent } from "@/analytics/posthog-client";
 
 export const Footer = () => {
   return (

@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useColor } from "@/ui/useColor";
 import { DestinyWrappedCard } from "../DestinyWrappedCard";
-import { trackEvent } from "@/lib/posthog-client";
+import { trackEvent } from "@/analytics/posthog-client";
 
 export function KofiCard({ idx }: { idx: number }) {
   const colorClass = useColor(idx);
@@ -179,4 +179,3 @@ export function KofiCard({ idx }: { idx: number }) {
     </DestinyWrappedCard>
   );
 }
-

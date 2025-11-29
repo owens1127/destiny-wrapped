@@ -3,13 +3,19 @@
 import React from "react";
 import { AuthLayout } from "./AuthLayout";
 
-export type LoadingState = "auth" | "profile" | "characters" | "activities";
+export type LoadingState =
+  | "auth"
+  | "profile"
+  | "characters"
+  | "activities"
+  | "pgcrs";
 
 const loadingMessages: Record<LoadingState, string> = {
   auth: "Checking authentication status...",
   profile: "Loading your profile...",
   characters: "Loading your characters...",
   activities: "Loading your activity history...",
+  pgcrs: "Loading detailed activity data...",
 };
 
 const stepProgress: Record<LoadingState, number> = {
@@ -17,20 +23,15 @@ const stepProgress: Record<LoadingState, number> = {
   profile: 25,
   characters: 50,
   activities: 75,
+  pgcrs: 90,
 };
 
 /**
  * Loading state using the stable AuthLayout.
  * Only the content changes, layout stays stable.
  */
-export const LoadingWithInfo = ({
-  state = "profile",
-  message,
-}: {
-  state?: LoadingState;
-  message?: string;
-}) => {
-  const displayMessage = message || loadingMessages[state];
+export const LoadingWithInfo = ({ state }: { state: LoadingState }) => {
+  const displayMessage = loadingMessages[state];
   const progress = stepProgress[state] || 0;
 
   return (

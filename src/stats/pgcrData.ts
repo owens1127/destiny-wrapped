@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { DestinyPostGameCarnageReportData } from "bungie-net-core/models";
-import { getPGCRs } from "@/api/idb";
+import { getPGCRs } from "@/storage/idb";
 import { DestinyHistoricalStatsPeriodGroup } from "bungie-net-core/models";
 
 /**
@@ -48,4 +48,3 @@ export function usePGCRData(
 
   return { pgcrData, isLoadingPGCRs };
 }
-

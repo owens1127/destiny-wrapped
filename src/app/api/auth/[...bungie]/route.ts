@@ -1,6 +1,6 @@
 import { catchAllHandler, getServerSession } from "..";
 import { NextRequest } from "next/server";
-import { trackSignIn, trackSignOut } from "@/lib/posthog-server";
+import { trackSignIn, trackSignOut } from "@/analytics/posthog-server";
 import { cookies } from "next/headers";
 
 export async function GET(req: NextRequest) {

@@ -8,9 +8,10 @@ import { useAuthorizedBungieSession } from "next-bungie-auth/client";
 import {
   getStorageSize,
   storePGCRs,
-  getActivitiesWithPGCRs,
   clearPGCRs,
-} from "@/api/idb";
+  getAllPGCRs,
+} from "@/storage/idb";
+import { batchStreamedPGCRs } from "@/storage/pgcrBatching";
 import { useToast } from "@/ui/useToast";
 import { Download, Trash2, Loader2, Sparkles } from "lucide-react";
 import {
@@ -18,7 +19,7 @@ import {
   DestinyPostGameCarnageReportData,
 } from "bungie-net-core/models";
 import { motion } from "framer-motion";
-import { trackEvent } from "@/lib/posthog-client";
+import { trackEvent } from "@/analytics/posthog-client";
 
 interface PGCRDownloadProps {
   activities: (DestinyHistoricalStatsPeriodGroup & {
@@ -40,6 +41,7 @@ export function PGCRDownload({
   const [progress, setProgress] = useState(0);
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const justCompletedRef = React.useRef(false);
+  const progressUpdateRef = React.useRef<number | null>(null);
   const [storageInfo, setStorageInfo] = useState<{
     used: number;
     estimated: number;
@@ -70,9 +72,9 @@ export function PGCRDownload({
 
       // Calculate how many stored PGCRs match the current activities
       if (activityIds.length > 0) {
-        const existingPGCRs = await getActivitiesWithPGCRs();
+        const existingPGCRs = await getAllPGCRs();
         const matchingCount = activityIds.filter((id) =>
-          existingPGCRs.has(id)
+          existingPGCRs.get(id)
         ).length;
         setStoredPGCRsForActivities(matchingCount);
       } else {
@@ -92,7 +94,7 @@ export function PGCRDownload({
 
     setIsChecking(true);
     try {
-      const existingPGCRs = await getActivitiesWithPGCRs();
+      const existingPGCRs = await getAllPGCRs();
       const alreadyDownloaded = activityIds.filter((id) =>
         existingPGCRs.has(id)
       ).length;
@@ -101,12 +103,10 @@ export function PGCRDownload({
       // Update the stored count for display
       setStoredPGCRsForActivities(alreadyDownloaded);
 
-      // Estimate: 16KB per PGCR
-      const avgSizePerPGCR = 16 * 1024;
+      // Estimate: 12KB per PGCR
+      const avgSizePerPGCR = 12 * 1024;
       const estimatedSize = needsDownload * avgSizePerPGCR;
-      // Rate limit: 30 requests/second, 30 concurrent max
-      // Account for network latency and rate limiting - more conservative estimate
-      const estimatedTime = Math.ceil(needsDownload / 20); // ~20 requests/second effective rate
+      const estimatedTime = Math.ceil(needsDownload / 30); // ~30 requests/second effective rate
 
       setDownloadStats({
         alreadyDownloaded,
@@ -226,7 +226,7 @@ export function PGCRDownload({
 
     // Track download start
     const downloadStartTime = Date.now();
-    const existingPGCRs = await getActivitiesWithPGCRs();
+    const existingPGCRs = await getAllPGCRs();
     const missingIds = activityIds.filter((id) => !existingPGCRs.has(id));
 
     trackEvent("pgcr_download_started", { count: missingIds.length });
@@ -248,80 +248,93 @@ export function PGCRDownload({
         periodMap.set(activity.activityDetails.instanceId, activity.period);
       });
 
-      // Download in batches (client handles rate limiting at 60/s)
+      // Download with rate limiting, batch for storage
       let downloaded = 0;
       let failed = 0;
 
-      // Send all missing IDs at once - client will batch internally
-      // Each PGCR will be stored as it's received
+      // Stream PGCRs and batch them for storage
       try {
-        const pgcrs = await bungie.getPostGameCarnageReports({
+        const stream = bungie.getPostGameCarnageReportsStream({
           accessToken: session.data.accessToken,
-          activityIds: missingIds,
-          onProgress: (progress) => setProgress(progress),
+          activityIds: new Set(missingIds),
           signal,
-          periodMap,
-          onPGCRReceived: async (pgcrs, periodMap) => {
-            // Filter PGCRs to only store those from 2025
+        });
+
+        // Transform stream to extract pgcr and track progress
+        // Throttle progress updates to avoid UI freezing
+        const progressStream = (async function* () {
+          for await (const item of stream) {
+            // Throttle progress updates using requestAnimationFrame
+            if (progressUpdateRef.current !== null) {
+              cancelAnimationFrame(progressUpdateRef.current);
+            }
+            progressUpdateRef.current = requestAnimationFrame(() => {
+              setProgress(item.progress);
+              progressUpdateRef.current = null;
+            });
+            // Yield just the pgcr for batchStreamedPGCRs
+            yield { pgcr: item.pgcr };
+          }
+        })();
+
+        const pgcrs = await batchStreamedPGCRs(
+          progressStream,
+          async (batch) => {
+            // Filter PGCRs to only store those from 2025, automatically deduping at the id level
             const pgcrsToStore = new Map<
               string,
               DestinyPostGameCarnageReportData
             >();
-            const filteredPeriodMap = new Map<string, string>();
 
-            pgcrs.forEach((pgcr, activityId) => {
-              const period = pgcr.period || periodMap?.get(activityId);
-              if (period) {
-                const date = new Date(period);
-                if (date.getFullYear() === 2025) {
-                  pgcrsToStore.set(activityId, pgcr);
-                  if (periodMap?.has(activityId)) {
-                    filteredPeriodMap.set(
-                      activityId,
-                      periodMap.get(activityId)!
-                    );
-                  }
-                }
+            batch.forEach((pgcr, activityId) => {
+              const date = new Date(pgcr.period);
+              if (date.getFullYear() === 2025) {
+                pgcrsToStore.set(activityId, pgcr);
               }
             });
 
             // Store batch of PGCRs (only 2025 ones)
             if (pgcrsToStore.size > 0) {
-              await storePGCRs(
-                pgcrsToStore,
-                filteredPeriodMap.size > 0 ? filteredPeriodMap : undefined
-              );
+              await storePGCRs(pgcrsToStore);
             }
 
-            // Update count directly for the activities we just stored
+            // Update count using functional updates to avoid race conditions
             const storedIds = Array.from(pgcrsToStore.keys());
             const newlyStoredCount = storedIds.filter((id) =>
               activityIds.includes(id)
             ).length;
+
             if (newlyStoredCount > 0) {
+              // Use functional updates to ensure we're working with latest state
               setStoredPGCRsForActivities((prev) => {
                 const newCount = prev + newlyStoredCount;
-                // Also update downloadStats if it exists
-                if (downloadStats) {
-                  const updatedNeedsDownload = activityIds.length - newCount;
-                  setDownloadStats((prevStats) => {
-                    if (!prevStats) return null;
-                    return {
-                      ...prevStats,
-                      alreadyDownloaded: newCount,
-                      needsDownload: updatedNeedsDownload,
-                    };
-                  });
-                }
+                // Update downloadStats using functional update
+                setDownloadStats((prevStats) => {
+                  if (!prevStats) return null;
+                  return {
+                    ...prevStats,
+                    alreadyDownloaded: newCount,
+                    needsDownload: activityIds.length - newCount,
+                  };
+                });
                 return newCount;
               });
             }
-            // Also refresh storage info for the total count (without blocking)
-            getStorageSize().then((info) => {
-              setStorageInfo(info);
-            });
-          },
-        });
+
+            // Only update storage info if we actually stored something and storageInfo is initialized
+            if (pgcrsToStore.size > 0) {
+              setStorageInfo((prev) => {
+                if (!prev) return null;
+                // Note: This is an approximation. The actual count may be less due to deduplication
+                // in bulkPut, but we update optimistically for better UX
+                return {
+                  ...prev,
+                  count: prev.count + pgcrsToStore.size,
+                };
+              });
+            }
+          }
+        );
 
         downloaded = pgcrs.size;
         failed = missingIds.length - pgcrs.size;
@@ -370,11 +383,11 @@ export function PGCRDownload({
       // Re-check stats after download completes instead of clearing
       await checkExistingPGCRs();
       // Check if all PGCRs are now downloaded and unlock stats
-      const finalStats = await getActivitiesWithPGCRs();
-      const finalDownloaded = activityIds.filter((id) =>
-        finalStats.has(id)
-      ).length;
-      if (finalDownloaded === activityIds.length && activityIds.length > 0) {
+      // Verify each specific activity ID is present, not just total database size
+      const finalStats = await getAllPGCRs();
+      const allDownloaded =
+        activityIds.length > 0 && activityIds.every((id) => finalStats.has(id));
+      if (allDownloaded) {
         onAllDownloaded?.();
       }
     } catch (error) {
@@ -388,6 +401,12 @@ export function PGCRDownload({
         variant: "destructive",
       });
     } finally {
+      // Cancel any pending progress updates
+      if (progressUpdateRef.current !== null) {
+        cancelAnimationFrame(progressUpdateRef.current);
+        progressUpdateRef.current = null;
+      }
+      // Clear any pending storage info updates
       setIsDownloading(false);
       setProgress(0);
       abortControllerRef.current = null;

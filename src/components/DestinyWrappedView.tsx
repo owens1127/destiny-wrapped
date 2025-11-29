@@ -4,8 +4,15 @@ import {
 } from "bungie-net-core/models";
 import { memo, useMemo } from "react";
 import { activityModeNames } from "@/config/modes";
-import { useWrappedStats } from "@/stats";
+import {
+  useWrappedStats,
+  usePGCRData,
+  convertActivityHistoryToCommon,
+  convertPGCRsToCommon,
+  CommonDestinyActivity,
+} from "@/stats";
 import { useDestinyManifestComponent } from "@/manifest/useDestinyManifestComponent";
+import { LoadingWithInfo } from "./LoadingWithInfo";
 import { ModesCard } from "./Cards/Modes";
 import { TopActivitiesCard } from "./Cards/TopActivities";
 import { TopActivitiesByRunsCard } from "./Cards/TopActivitiesByRuns";
@@ -13,7 +20,6 @@ import { DedicationCard } from "./Cards/Dedication";
 import { SummaryCard } from "./Cards/Summary";
 import { PopularMonthCard } from "./Cards/PopularMonth";
 import { ClassStatsCard } from "./Cards/ClassStats";
-import { NewChallengesCard } from "./Cards/NewChallenges";
 import { PvpStatsCard } from "./Cards/Pvp";
 import { FireteamCard } from "./Cards/Fireteam";
 import { WeaponUsageCard } from "./Cards/WeaponUsage";
@@ -38,6 +44,48 @@ export const DestinyWrappedView = memo(
     // Preload item definitions for emblems and weapons
     useDestinyManifestComponent("DestinyInventoryItemDefinition");
 
+    const { pgcrData, isLoadingPGCRs } = usePGCRData(props.activities);
+
+    // Convert activities to CommonDestinyActivity format
+    // PGCRs replace activity history when available
+    const commonActivities = useMemo(() => {
+      if (isLoadingPGCRs) {
+        return [];
+      }
+
+      // Get user character IDs for PGCR conversion
+      const userCharacterIds = new Set(
+        props.activities.map((a) => a.characterId)
+      );
+
+      // Convert PGCRs to common format - these take priority
+      const pgcrActivities = convertPGCRsToCommon(pgcrData, userCharacterIds);
+
+      // Create a map of activities by instanceId, starting with PGCRs
+      const activitiesMap = new Map<string, CommonDestinyActivity>();
+
+      // Add PGCR activities first (they replace activity history)
+      pgcrActivities.forEach((pgcrActivity) => {
+        activitiesMap.set(pgcrActivity.instanceId, pgcrActivity);
+      });
+
+      // Only add activity history for activities that don't have PGCR data
+      const activityHistoryActivities = convertActivityHistoryToCommon(
+        props.activities
+      );
+      activityHistoryActivities.forEach((activity) => {
+        // Only add if we don't already have PGCR data for this instance
+        if (!activitiesMap.has(activity.instanceId)) {
+          activitiesMap.set(activity.instanceId, activity);
+        }
+      });
+
+      return Array.from(activitiesMap.values());
+    }, [props.activities, pgcrData, isLoadingPGCRs]);
+
+    // Always call hooks, but use empty array if loading
+    const wrappedStats = useWrappedStats(commonActivities, props.characterMap);
+
     const {
       topNModes,
       topNActivitiesByPlaytime,
@@ -46,8 +94,6 @@ export const DestinyWrappedView = memo(
       longestStreak,
       mostPopularMonth,
       sortedClassEntries,
-      newDungeonActivities,
-      newRaidActivities,
       pvpStats,
       pvePvpSplit,
       fireteamStats,
@@ -59,7 +105,7 @@ export const DestinyWrappedView = memo(
       favoriteEmblems,
       sixtySevenStats,
       hasPGCRData,
-    } = useWrappedStats(props.activities, props.characterMap);
+    } = wrappedStats;
 
     const topMode = topNModes(1)[0];
     const topTenActivitiesByTime = topNActivitiesByPlaytime(10);
@@ -244,25 +290,6 @@ export const DestinyWrappedView = memo(
         );
       }
 
-      const totalDungeonCount = Object.values(newDungeonActivities).reduce(
-        (sum, stats) => sum + stats.count,
-        0
-      );
-      const totalRaidCount = Object.values(newRaidActivities).reduce(
-        (sum, stats) => sum + stats.count,
-        0
-      );
-      if (totalDungeonCount + totalRaidCount > 0) {
-        cardList.push(
-          <NewChallengesCard
-            key="new-challenges"
-            newDungeonActivities={newDungeonActivities}
-            newRaidActivities={newRaidActivities}
-            idx={getNextIdx()}
-          />
-        );
-      }
-
       cardList.push(
         <SummaryCard
           key="summary"
@@ -316,12 +343,15 @@ export const DestinyWrappedView = memo(
       topTenActivitiesByRuns,
       sixtySevenStats,
       teammateStats,
-      newDungeonActivities,
-      newRaidActivities,
       props.displayName,
       topActivity,
       pvePvpSplit,
     ]);
+
+    // Block rendering until PGCRs are loaded
+    if (isLoadingPGCRs) {
+      return <LoadingWithInfo state="pgcrs" />;
+    }
 
     return (
       <main className="min-h-screen mx-auto pb-8">

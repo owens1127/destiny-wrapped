@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useBungieSession } from "next-bungie-auth/client";
 import posthog from "posthog-js";
-import { identifyUser } from "@/lib/posthog-client";
+import { identifyUser } from "@/analytics/posthog-client";
 
 /**
  * Integrates PostHog with Next.js App Router for automatic page view tracking

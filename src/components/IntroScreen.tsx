@@ -7,8 +7,8 @@ import { PGCRDownload } from "./PGCRDownload";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { AuthLayout } from "./AuthLayout";
 import { DestinyHistoricalStatsPeriodGroup } from "bungie-net-core/models";
-import { getActivitiesWithPGCRs } from "@/api/idb";
-import { trackEvent } from "@/lib/posthog-client";
+import { trackEvent } from "@/analytics/posthog-client";
+import { getAllPGCRs } from "@/storage/idb";
 
 interface IntroScreenProps {
   activities: (DestinyHistoricalStatsPeriodGroup & {
@@ -36,7 +36,7 @@ export function IntroScreen({
       }
 
       try {
-        const existingPGCRs = await getActivitiesWithPGCRs();
+        const existingPGCRs = await getAllPGCRs();
         const downloadedCount = activityIds.filter((id) =>
           existingPGCRs.has(id)
         ).length;

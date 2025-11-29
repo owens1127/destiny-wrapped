@@ -1,117 +1,114 @@
 import { useMemo } from "react";
-import {
-  DestinyClass,
-  DestinyHistoricalStatsPeriodGroup,
-} from "bungie-net-core/models";
+import { DestinyClass } from "bungie-net-core/models";
 import { activityModeNames } from "@/config/modes";
-import { getSeason, seasonWeights } from "@/config/seasons";
-import { new2025Challenges } from "@/config/challenges";
+import { getSeason } from "@/config/seasons";
 import {
-  getActivityValue,
-  getActivityStats,
-  isActivityWin,
-  isActivityCompleted,
+  getCharacterValue,
+  getCharacterExtendedValue,
+  getCharacterStats,
+  getActivityStatsFromCommon,
+  isCharacterActivityWin,
+  isCharacterActivityCompleted,
 } from "./activityUtils";
-import {
-  groupActivitiesBy,
-  deduplicateActivitiesByInstanceId,
-} from "./activityGrouping";
-import { usePGCRData } from "./pgcrData";
+import { CommonDestinyActivity, CharacterValues } from "./activityTypes";
+
+type SixtySevenType =
+  | "kills"
+  | "assists"
+  | "deaths"
+  | "precisionKills"
+  | "opponentsDefeated"
+  | "score"
+  | "orbsDropped"
+  | "orbsGathered"
+  | "standing"
+  | "weaponKillsGrenade"
+  | "weaponKillsMelee"
+  | "weaponKillsSuper"
+  | "weaponKillsAbility";
+
+// Helper to check and track 67 meme moments
+function checkSixtySeven(
+  value: number,
+  type: SixtySevenType,
+  activity: CommonDestinyActivity,
+  characterValues: CharacterValues,
+  counts: Record<SixtySevenType, number>,
+  activities: Array<{
+    type: SixtySevenType;
+    activity: CommonDestinyActivity;
+    characterValues: CharacterValues;
+  }>
+) {
+  if (value === 67) {
+    counts[type]++;
+    activities.push({ type, activity, characterValues });
+  }
+}
+
+// Helper to calculate total time played for activities
+function getTotalTimePlayed(activities: CommonDestinyActivity[]): number {
+  return activities.reduce((acc, activity) => {
+    const stats = getActivityStatsFromCommon(activity);
+    return acc + stats.timePlayedSeconds;
+  }, 0);
+}
+
+// Helper to calculate game mode stats
+function calculateGameStats(games: CommonDestinyActivity[]) {
+  return {
+    games: games.length,
+    wins: games.filter((activity) => {
+      const allChars = Array.from(activity.characterValues.values());
+      return allChars.some((char) => isCharacterActivityWin(char));
+    }).length,
+    kills: games.reduce((acc, activity) => {
+      const stats = getActivityStatsFromCommon(activity);
+      return acc + stats.kills;
+    }, 0),
+    deaths: games.reduce((acc, activity) => {
+      const stats = getActivityStatsFromCommon(activity);
+      return acc + stats.deaths;
+    }, 0),
+    assists: games.reduce((acc, activity) => {
+      const stats = getActivityStatsFromCommon(activity);
+      return acc + stats.assists;
+    }, 0),
+    timePlayed: getTotalTimePlayed(games),
+  };
+}
 
 /**
  * Calculate all wrapped stats from activities
  */
 export function useWrappedStats(
-  activities: (DestinyHistoricalStatsPeriodGroup & {
-    characterId: string;
-  })[],
+  activities: CommonDestinyActivity[],
   characterMap: Record<string, DestinyClass>
 ) {
-  const { pgcrData, isLoadingPGCRs } = usePGCRData(activities);
   return useMemo(() => {
-    // First, verify and deduplicate input activities by instanceId
-    // This is a safety check in case useActivityHistory didn't fully deduplicate
-    const deduplicatedInput = deduplicateActivitiesByInstanceId(activities);
-
-    // Group activities by instanceId, tracking all characters that played each instance
-    // This allows us to count stats once per instance but include all classes for class grouping
-    const activitiesByInstance = new Map<
-      string,
-      {
-        activity: DestinyHistoricalStatsPeriodGroup & { characterId: string };
-        characterIds: Set<string>;
-      }
-    >();
-
-    deduplicatedInput.forEach((activity) => {
-      const instanceId = activity.activityDetails.instanceId;
-      const existing = activitiesByInstance.get(instanceId);
-      if (existing) {
-        existing.characterIds.add(activity.characterId);
-      } else {
-        activitiesByInstance.set(instanceId, {
-          activity,
-          characterIds: new Set([activity.characterId]),
-        });
-      }
-    });
-
-    // Create deduplicated list for stats (one per instance)
-    const deduplicatedActivities = Array.from(
-      activitiesByInstance.values()
-    ).map((entry) => entry.activity);
-
-    // Filter out activities with more than 18 players
-    const filteredActivities: (DestinyHistoricalStatsPeriodGroup & {
-      characterId: string;
-    })[] = deduplicatedActivities.filter((activity) => {
-      const pgcr = pgcrData.get(activity.activityDetails.instanceId);
-      if (pgcr) {
-        const playerCount = pgcr.entries?.length || 0;
+    // Filter out activities with more than 18 players (count distinct membership IDs)
+    const filteredActivities = activities.filter((activity) => {
+      if (activity.entries) {
+        // Count distinct membership IDs, not total entries (a player can have multiple characters)
+        const uniqueMembershipIds = new Set(
+          activity.entries
+            .map((entry) => entry.player?.destinyUserInfo?.membershipId)
+            .filter((id): id is string => !!id)
+        );
+        const playerCount = uniqueMembershipIds.size;
         return playerCount <= 18;
       }
       // If no PGCR data, include it (can't determine player count)
       return true;
     });
 
-    // Group activities by various dimensions
-    const groupedByMode = groupActivitiesBy(
-      filteredActivities,
-      (activity) => activity.activityDetails.mode
-    );
-    const groupedByPrimaryMode = groupActivitiesBy(
-      filteredActivities,
-      (activity) => activity.activityDetails.mode
-    );
-    const groupedByMonth = groupActivitiesBy(filteredActivities, (activity) =>
-      new Date(activity.period).getMonth()
-    );
-    const groupedByHash = groupActivitiesBy(
-      filteredActivities,
-      (activity) => activity.activityDetails.directorActivityHash
-    );
-
-    // For class grouping, assign each activity instance to exactly one class
-    // filteredActivities is already deduplicated, so we can directly assign each activity to its class
-    const groupedByClass = new Map<
-      DestinyClass,
-      (DestinyHistoricalStatsPeriodGroup & { characterId: string })[]
-    >();
-
-    filteredActivities.forEach((activity) => {
-      // Assign to the class of the character in this activity record
-      const charClass = characterMap[activity.characterId] ?? 3;
-      const existing = groupedByClass.get(charClass);
-      if (existing) {
-        existing.push(activity);
-      } else {
-        groupedByClass.set(charClass, [activity]);
-      }
-    });
-
-    const groupedBySeason = groupActivitiesBy(filteredActivities, (activity) =>
-      getSeason(new Date(activity.period))
-    );
+    // Initialize grouping maps (will be populated in the loop)
+    const groupedByMode = new Map<number, CommonDestinyActivity[]>();
+    const groupedByPrimaryMode = new Map<number, CommonDestinyActivity[]>();
+    const groupedByMonth = new Map<number, CommonDestinyActivity[]>();
+    const groupedByHash = new Map<number, CommonDestinyActivity[]>();
+    const groupedByClass = new Map<DestinyClass, CommonDestinyActivity[]>();
+    const groupedBySeason = new Map<string, CommonDestinyActivity[]>();
 
     // Base stats
     const totalStats = {
@@ -133,17 +130,8 @@ export function useWrappedStats(
       currentEnd: null as Date | null,
     };
 
-    const newRaidActivitiesByHash = new Map<
-      number,
-      DestinyHistoricalStatsPeriodGroup[]
-    >();
-    const newDungeonActivitiesByHash = new Map<
-      number,
-      DestinyHistoricalStatsPeriodGroup[]
-    >();
-
-    const gambitGames: DestinyHistoricalStatsPeriodGroup[] = [];
-    const pvpGames: DestinyHistoricalStatsPeriodGroup[] = [];
+    const gambitGames: CommonDestinyActivity[] = [];
+    const pvpGames: CommonDestinyActivity[] = [];
 
     // PGCR-dependent stats
     const fireteamStats = {
@@ -195,140 +183,133 @@ export function useWrappedStats(
       weaponKillsAbility: 0,
     };
     const sixtySevenActivities: Array<{
-      type:
-        | "kills"
-        | "assists"
-        | "deaths"
-        | "precisionKills"
-        | "opponentsDefeated"
-        | "score"
-        | "orbsDropped"
-        | "orbsGathered"
-        | "standing"
-        | "weaponKillsGrenade"
-        | "weaponKillsMelee"
-        | "weaponKillsSuper"
-        | "weaponKillsAbility";
-      activity: DestinyHistoricalStatsPeriodGroup & { characterId: string };
+      type: SixtySevenType;
+      activity: CommonDestinyActivity;
+      characterValues: CharacterValues;
     }> = [];
 
     let activitiesWithPGCR = 0;
 
     // Process all activities
     filteredActivities.forEach((activity) => {
-      const stats = getActivityStats(activity);
+      // Aggregate stats across all characters that played this activity
+      const allCharacters = Array.from(activity.characterValues.values());
+      if (allCharacters.length === 0) return; // Skip if no character data
+
+      const stats = getActivityStatsFromCommon(activity);
       totalStats.playTime += stats.timePlayedSeconds;
       totalStats.kills += stats.kills;
       totalStats.deaths += stats.deaths;
       totalStats.assists += stats.assists;
 
-      // Track 67 meme moments - check stats from activity history
-      const opponentsDefeated = getActivityValue(activity, "opponentsDefeated");
-      const score = getActivityValue(activity, "score");
-      const standing = getActivityValue(activity, "standing");
-
-      if (stats.kills === 67) {
-        sixtySevenCounts.kills++;
-        sixtySevenActivities.push({ type: "kills", activity });
-      }
-      if (stats.assists === 67) {
-        sixtySevenCounts.assists++;
-        sixtySevenActivities.push({ type: "assists", activity });
-      }
-      if (stats.deaths === 67) {
-        sixtySevenCounts.deaths++;
-        sixtySevenActivities.push({ type: "deaths", activity });
-      }
-      if (opponentsDefeated === 67) {
-        sixtySevenCounts.opponentsDefeated++;
-        sixtySevenActivities.push({ type: "opponentsDefeated", activity });
-      }
-      if (score === 67) {
-        sixtySevenCounts.score++;
-        sixtySevenActivities.push({ type: "score", activity });
-      }
-      if (standing === 67) {
-        sixtySevenCounts.standing++;
-        sixtySevenActivities.push({ type: "standing", activity });
-      }
+      // Track 67 meme moments - check stats from all character values
+      allCharacters.forEach((charValues) => {
+        const charStats = getCharacterStats(charValues);
+        checkSixtySeven(
+          charStats.kills,
+          "kills",
+          activity,
+          charValues,
+          sixtySevenCounts,
+          sixtySevenActivities
+        );
+        checkSixtySeven(
+          charStats.assists,
+          "assists",
+          activity,
+          charValues,
+          sixtySevenCounts,
+          sixtySevenActivities
+        );
+        checkSixtySeven(
+          charStats.deaths,
+          "deaths",
+          activity,
+          charValues,
+          sixtySevenCounts,
+          sixtySevenActivities
+        );
+        checkSixtySeven(
+          getCharacterValue(charValues, "opponentsDefeated"),
+          "opponentsDefeated",
+          activity,
+          charValues,
+          sixtySevenCounts,
+          sixtySevenActivities
+        );
+        checkSixtySeven(
+          getCharacterValue(charValues, "score"),
+          "score",
+          activity,
+          charValues,
+          sixtySevenCounts,
+          sixtySevenActivities
+        );
+        checkSixtySeven(
+          getCharacterValue(charValues, "standing"),
+          "standing",
+          activity,
+          charValues,
+          sixtySevenCounts,
+          sixtySevenActivities
+        );
+      });
 
       // Group by mode (all modes)
       activity.activityDetails.modes.forEach((mode) => {
         const existing = groupedByMode.get(mode);
-        if (!existing) {
-          groupedByMode.set(mode, [activity]);
-        } else {
+        if (existing) {
           existing.push(activity);
+        } else {
+          groupedByMode.set(mode, [activity]);
         }
       });
 
       // Group by primary mode
       const mode = activity.activityDetails.mode;
       const existingModeGroup = groupedByPrimaryMode.get(mode);
-      if (!existingModeGroup) {
-        groupedByPrimaryMode.set(mode, [activity]);
-      } else {
+      if (existingModeGroup) {
         existingModeGroup.push(activity);
+      } else {
+        groupedByPrimaryMode.set(mode, [activity]);
       }
 
       // Group by month
-      const month = new Date(activity.period).getMonth();
+      const month = activity.period.getMonth();
       const existingMonthGroup = groupedByMonth.get(month);
-      if (!existingMonthGroup) {
-        groupedByMonth.set(month, [activity]);
-      } else {
+      if (existingMonthGroup) {
         existingMonthGroup.push(activity);
+      } else {
+        groupedByMonth.set(month, [activity]);
       }
 
       // Group by hash
       const hash = activity.activityDetails.directorActivityHash;
       const existingHashGroup = groupedByHash.get(hash);
-      if (!existingHashGroup) {
-        groupedByHash.set(hash, [activity]);
-      } else {
+      if (existingHashGroup) {
         existingHashGroup.push(activity);
+      } else {
+        groupedByHash.set(hash, [activity]);
       }
 
-      // Group by class
-      const characterClass = characterMap[activity.characterId] ?? 3;
-      const existingClassGroup = groupedByClass.get(characterClass);
-      if (!existingClassGroup) {
-        groupedByClass.set(characterClass, [activity]);
-      } else {
-        existingClassGroup.push(activity);
-      }
+      // Group by class - assign activity to each class that played it
+      activity.characterValues.forEach((charValues) => {
+        const characterClass = characterMap[charValues.characterId] ?? 3;
+        const existingClassGroup = groupedByClass.get(characterClass);
+        if (existingClassGroup) {
+          existingClassGroup.push(activity);
+        } else {
+          groupedByClass.set(characterClass, [activity]);
+        }
+      });
 
       // Group by season
-      const season = getSeason(new Date(activity.period));
+      const season = getSeason(activity.period);
       const existingSeasonGroup = groupedBySeason.get(season);
-      if (!existingSeasonGroup) {
-        groupedBySeason.set(season, [activity]);
-      } else {
+      if (existingSeasonGroup) {
         existingSeasonGroup.push(activity);
-      }
-
-      // Track raids and dungeons
-      const raidChallenge = new2025Challenges.raids.find(
-        (r) => r.hash === hash
-      );
-      const dungeonChallenge = new2025Challenges.dungeons.find(
-        (d) => d.hash === hash
-      );
-
-      if (raidChallenge) {
-        const existing = newRaidActivitiesByHash.get(hash);
-        if (!existing) {
-          newRaidActivitiesByHash.set(hash, [activity]);
-        } else {
-          existing.push(activity);
-        }
-      } else if (dungeonChallenge) {
-        const existing = newDungeonActivitiesByHash.get(hash);
-        if (!existing) {
-          newDungeonActivitiesByHash.set(hash, [activity]);
-        } else {
-          existing.push(activity);
-        }
+      } else {
+        groupedBySeason.set(season, [activity]);
       }
 
       // Track game modes
@@ -385,14 +366,19 @@ export function useWrappedStats(
       }
 
       // Process PGCR data if available
-      const pgcr = pgcrData.get(activity.activityDetails.instanceId);
-      if (pgcr) {
+      if (activity.entries && activity.entries.length > 0) {
         activitiesWithPGCR++;
 
         // Fireteam stats (only count once per instance)
-        const entries = pgcr.entries || [];
-        const playerCount = entries.length;
-        const timePlayed = getActivityValue(activity, "timePlayedSeconds");
+        // Count distinct membership IDs, not total entries (a player can have multiple characters)
+        const uniqueMembershipIds = new Set(
+          activity.entries.map(
+            (entry) => entry.player.destinyUserInfo.membershipId
+          )
+        );
+        const playerCount = uniqueMembershipIds.size;
+        const stats = getActivityStatsFromCommon(activity);
+        const timePlayed = stats.timePlayedSeconds;
 
         fireteamSizeCounts.set(
           playerCount,
@@ -407,20 +393,34 @@ export function useWrappedStats(
           fireteamStats.teamTimePlayed += timePlayed;
         }
 
-        if (playerCount > fireteamStats.largestFireteamSize) {
+        // Largest squad only counts solo activities where player played at least 15 minutes and completed
+        const MIN_TIME_FOR_LARGEST_SQUAD = 15 * 60; // 15 minutes in seconds
+        const allCharacters = Array.from(activity.characterValues.values());
+        const hasCompleted = allCharacters.some((char) =>
+          isCharacterActivityCompleted(char)
+        );
+        const playedEnough = timePlayed >= MIN_TIME_FOR_LARGEST_SQUAD;
+        const isTeamBased = activity.teams && activity.teams.length > 0;
+
+        if (
+          !isTeamBased &&
+          hasCompleted &&
+          playedEnough &&
+          playerCount > fireteamStats.largestFireteamSize
+        ) {
           fireteamStats.largestFireteamSize = playerCount;
         }
 
-        // Get all characters that played this instance
-        const instanceId = activity.activityDetails.instanceId;
-        const instanceData = activitiesByInstance.get(instanceId);
-        const characterIdsForInstance = instanceData
-          ? Array.from(instanceData.characterIds)
-          : [activity.characterId];
+        // Get all characters that played this instance from characterValues
+        const characterIdsForInstance = Array.from(
+          activity.characterValues.keys()
+        );
+        const firstCharacterId = characterIdsForInstance[0];
+        const entries = activity.entries;
 
         // Process character-specific data for all characters that played this instance
         // This ensures we capture emblems, weapon kills, etc. for all characters
-        characterIdsForInstance.forEach((charId) => {
+        activity.characterValues.forEach((charValues, charId) => {
           const playerEntry = entries.find(
             (entry) => entry.characterId === charId
           );
@@ -432,7 +432,7 @@ export function useWrappedStats(
             playerEntry.player?.destinyUserInfo?.membershipId;
 
           // Track teammates (only once per instance, using first character's perspective)
-          if (charId === activity.characterId) {
+          if (charId === firstCharacterId) {
             entries.forEach((entry) => {
               const player = entry.player;
               if (player && player.destinyUserInfo) {
@@ -466,57 +466,63 @@ export function useWrappedStats(
           }
 
           // Process character-specific data (emblems, weapon kills, etc.)
-          // Check 67 moments from extended stats (only count once per instance)
-          if (charId === activity.characterId && playerEntry.extended?.values) {
-            const extendedValues = playerEntry.extended.values;
-            const precisionKills =
-              extendedValues.precisionKills?.basic?.value ?? 0;
-            const orbsDropped = extendedValues.orbsDropped?.basic?.value ?? 0;
-            const orbsGathered = extendedValues.orbsGathered?.basic?.value ?? 0;
-            const weaponKillsGrenade =
-              extendedValues.weaponKillsGrenade?.basic?.value ?? 0;
-            const weaponKillsMelee =
-              extendedValues.weaponKillsMelee?.basic?.value ?? 0;
-            const weaponKillsSuper =
-              extendedValues.weaponKillsSuper?.basic?.value ?? 0;
-            const weaponKillsAbility =
-              extendedValues.weaponKillsAbility?.basic?.value ?? 0;
-
-            if (precisionKills === 67) {
-              sixtySevenCounts.precisionKills++;
-              sixtySevenActivities.push({ type: "precisionKills", activity });
-            }
-            if (orbsDropped === 67) {
-              sixtySevenCounts.orbsDropped++;
-              sixtySevenActivities.push({ type: "orbsDropped", activity });
-            }
-            if (orbsGathered === 67) {
-              sixtySevenCounts.orbsGathered++;
-              sixtySevenActivities.push({ type: "orbsGathered", activity });
-            }
-            if (weaponKillsGrenade === 67) {
-              sixtySevenCounts.weaponKillsGrenade++;
-              sixtySevenActivities.push({
-                type: "weaponKillsGrenade",
-                activity,
-              });
-            }
-            if (weaponKillsMelee === 67) {
-              sixtySevenCounts.weaponKillsMelee++;
-              sixtySevenActivities.push({ type: "weaponKillsMelee", activity });
-            }
-            if (weaponKillsSuper === 67) {
-              sixtySevenCounts.weaponKillsSuper++;
-              sixtySevenActivities.push({ type: "weaponKillsSuper", activity });
-            }
-            if (weaponKillsAbility === 67) {
-              sixtySevenCounts.weaponKillsAbility++;
-              sixtySevenActivities.push({
-                type: "weaponKillsAbility",
-                activity,
-              });
-            }
-          }
+          // Check 67 moments from extended stats
+          checkSixtySeven(
+            getCharacterExtendedValue(charValues, "precisionKills"),
+            "precisionKills",
+            activity,
+            charValues,
+            sixtySevenCounts,
+            sixtySevenActivities
+          );
+          checkSixtySeven(
+            getCharacterExtendedValue(charValues, "orbsDropped"),
+            "orbsDropped",
+            activity,
+            charValues,
+            sixtySevenCounts,
+            sixtySevenActivities
+          );
+          checkSixtySeven(
+            getCharacterExtendedValue(charValues, "orbsGathered"),
+            "orbsGathered",
+            activity,
+            charValues,
+            sixtySevenCounts,
+            sixtySevenActivities
+          );
+          checkSixtySeven(
+            getCharacterExtendedValue(charValues, "weaponKillsGrenade"),
+            "weaponKillsGrenade",
+            activity,
+            charValues,
+            sixtySevenCounts,
+            sixtySevenActivities
+          );
+          checkSixtySeven(
+            getCharacterExtendedValue(charValues, "weaponKillsMelee"),
+            "weaponKillsMelee",
+            activity,
+            charValues,
+            sixtySevenCounts,
+            sixtySevenActivities
+          );
+          checkSixtySeven(
+            getCharacterExtendedValue(charValues, "weaponKillsSuper"),
+            "weaponKillsSuper",
+            activity,
+            charValues,
+            sixtySevenCounts,
+            sixtySevenActivities
+          );
+          checkSixtySeven(
+            getCharacterExtendedValue(charValues, "weaponKillsAbility"),
+            "weaponKillsAbility",
+            activity,
+            charValues,
+            sixtySevenCounts,
+            sixtySevenActivities
+          );
 
           // Track emblem usage for all characters (each character can have different emblem)
           const emblemHash = playerEntry.player?.emblemHash;
@@ -530,14 +536,13 @@ export function useWrappedStats(
           // Check if this is a PvP activity
           const isPvP = activity.activityDetails.modes.includes(5);
 
-          // Weapon kills from extended stats (track for all characters)
-          const extended = playerEntry.extended;
+          // Weapon kills from characterValues.weapons (track for all characters)
           if (
-            extended?.weapons &&
-            Array.isArray(extended.weapons) &&
-            extended.weapons.length > 0
+            charValues.weapons &&
+            Array.isArray(charValues.weapons) &&
+            charValues.weapons.length > 0
           ) {
-            extended.weapons.forEach((weapon) => {
+            charValues.weapons.forEach((weapon) => {
               const weaponHash = weapon.referenceId;
               if (!weaponHash) return;
 
@@ -558,30 +563,40 @@ export function useWrappedStats(
             });
           }
 
-          // Ability kills from extended.values (track for all characters)
-          const extendedValues = extended?.values || {};
-          if (extendedValues.weaponKillsSuper?.basic?.value) {
-            abilityStats.superKills +=
-              extendedValues.weaponKillsSuper.basic.value;
+          // Ability kills from extendedValues (track for all characters)
+          const superKills = getCharacterExtendedValue(
+            charValues,
+            "weaponKillsSuper"
+          );
+          if (superKills > 0) {
+            abilityStats.superKills += superKills;
           }
-          if (extendedValues.weaponKillsGrenade?.basic?.value) {
-            abilityStats.grenadeKills +=
-              extendedValues.weaponKillsGrenade.basic.value;
+          const grenadeKills = getCharacterExtendedValue(
+            charValues,
+            "weaponKillsGrenade"
+          );
+          if (grenadeKills > 0) {
+            abilityStats.grenadeKills += grenadeKills;
           }
-          if (extendedValues.weaponKillsMelee?.basic?.value) {
-            abilityStats.meleeKills +=
-              extendedValues.weaponKillsMelee.basic.value;
+          const meleeKills = getCharacterExtendedValue(
+            charValues,
+            "weaponKillsMelee"
+          );
+          if (meleeKills > 0) {
+            abilityStats.meleeKills += meleeKills;
           }
-          if (extendedValues.weaponKillsAbility?.basic?.value) {
-            abilityStats.abilityKills +=
-              extendedValues.weaponKillsAbility.basic.value;
+          const abilityKills = getCharacterExtendedValue(
+            charValues,
+            "weaponKillsAbility"
+          );
+          if (abilityKills > 0) {
+            abilityStats.abilityKills += abilityKills;
           }
         });
 
         // Time of day stats
-        const date = new Date(activity.period);
-        const hour = date.getHours();
-        const dayOfWeek = date.getDay();
+        const hour = activity.period.getHours();
+        const dayOfWeek = activity.period.getDay();
         hourTimePlayed[hour] += timePlayed;
         dayOfWeekTimePlayed[dayOfWeek] += timePlayed;
       }
@@ -590,35 +605,19 @@ export function useWrappedStats(
     // Calculate derived stats
     // filteredActivities is already deduplicated, so grouped activities are also deduplicated
     const sortedByTimeInMode = Array.from(groupedByPrimaryMode.entries())
-      .sort(
-        ([, a], [, b]) =>
-          b.reduce(
-            (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
-            0
-          ) -
-          a.reduce(
-            (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
-            0
-          )
-      )
       .map(([mode, activities]) => ({
         mode,
         count: activities.length,
-        timePlayedSeconds: activities.reduce(
-          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
-          0
-        ),
+        timePlayedSeconds: getTotalTimePlayed(activities),
         modeName: activityModeNames[mode],
-      }));
+      }))
+      .sort((a, b) => b.timePlayedSeconds - a.timePlayedSeconds);
 
     const hashedActs = Array.from(groupedByHash.entries()).map(
       ([hash, activities]) => ({
         hash,
         count: activities.length,
-        timePlayedSeconds: activities.reduce(
-          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
-          0
-        ),
+        timePlayedSeconds: getTotalTimePlayed(activities),
       })
     );
 
@@ -632,25 +631,23 @@ export function useWrappedStats(
     const topNActivitiesByRuns = (n: number) =>
       [...sortedByTimeInHash].sort((a, b) => b.count - a.count).slice(0, n);
 
-    const [mostPopularMonthId, mostPopularMonthEntries] = Array.from(
-      groupedByMonth.entries()
-    ).sort(
-      ([, a], [, b]) =>
-        b.reduce(
-          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
-          0
-        ) -
-        a.reduce((acc, e) => acc + getActivityValue(e, "timePlayedSeconds"), 0)
-    )[0] ?? [11, []];
+    const mostPopularMonthData = Array.from(groupedByMonth.entries())
+      .map(([month, activities]) => ({
+        month,
+        activities,
+        timePlayedSeconds: getTotalTimePlayed(activities),
+      }))
+      .sort((a, b) => b.timePlayedSeconds - a.timePlayedSeconds)[0] ?? {
+      month: 11,
+      activities: [],
+      timePlayedSeconds: 0,
+    };
 
     // Calculate class stats
     // filteredActivities is already deduplicated, so class activities are also deduplicated
     const sortedClassEntries = Array.from(groupedByClass.entries())
       .map(([classType, activities]) => {
-        const timePlayedSeconds = activities.reduce(
-          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
-          0
-        );
+        const timePlayedSeconds = getTotalTimePlayed(activities);
         return [
           classType,
           {
@@ -662,27 +659,14 @@ export function useWrappedStats(
       })
       .sort(([, a], [, b]) => b.timePlayedSeconds - a.timePlayedSeconds);
 
-    const [leastPopularSeasonName, leastPopularSeasonActs] = Array.from(
-      groupedBySeason.entries()
-    ).sort(
-      ([aName, a], [bName, b]) =>
-        a.reduce(
-          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
-          0
-        ) *
-          seasonWeights[aName] -
-        b.reduce(
-          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
-          0
-        ) *
-          seasonWeights[bName]
-    )[0];
-
     const monthlyPlayTimeByDay = new Array(32).fill(0);
-    mostPopularMonthEntries.forEach((entry) => {
-      monthlyPlayTimeByDay[new Date(entry.period).getDate()] +=
-        getActivityValue(entry, "timePlayedSeconds");
-    });
+    mostPopularMonthData.activities.forEach(
+      (activity: CommonDestinyActivity) => {
+        const stats = getActivityStatsFromCommon(activity);
+        monthlyPlayTimeByDay[activity.period.getDate()] +=
+          stats.timePlayedSeconds;
+      }
+    );
 
     // Calculate fireteam stats
     if (activitiesWithPGCR > 0) {
@@ -790,105 +774,14 @@ export function useWrappedStats(
         end: longestStreak.end!,
       },
       mostPopularMonth: {
-        id: mostPopularMonthId,
-        count: mostPopularMonthEntries.length,
-        timePlayedSeconds: mostPopularMonthEntries.reduce(
-          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
-          0
-        ),
+        id: mostPopularMonthData.month,
+        count: mostPopularMonthData.activities.length,
+        timePlayedSeconds: mostPopularMonthData.timePlayedSeconds,
         playtimeByDay: monthlyPlayTimeByDay,
       },
-      leastPopularSeason: {
-        name: leastPopularSeasonName,
-        count: leastPopularSeasonActs.length,
-        timePlayedSeconds: leastPopularSeasonActs.reduce(
-          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
-          0
-        ),
-      },
       sortedClassEntries,
-      newDungeonActivities: Object.fromEntries(
-        new2025Challenges.dungeons.map((dungeon) => {
-          const activities = newDungeonActivitiesByHash.get(dungeon.hash) || [];
-          // Deduplicate by instanceId to avoid double-counting time
-          const deduplicatedActivities =
-            deduplicateActivitiesByInstanceId(activities);
-          return [
-            dungeon.hash,
-            {
-              name: dungeon.name,
-              count: deduplicatedActivities.length,
-              completed:
-                deduplicatedActivities.filter(isActivityCompleted).length,
-              timePlayed: deduplicatedActivities.reduce(
-                (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
-                0
-              ),
-            },
-          ];
-        })
-      ),
-      newRaidActivities: Object.fromEntries(
-        new2025Challenges.raids.map((raid) => {
-          const activities = newRaidActivitiesByHash.get(raid.hash) || [];
-          // Deduplicate by instanceId to avoid double-counting time
-          const deduplicatedActivities =
-            deduplicateActivitiesByInstanceId(activities);
-          return [
-            raid.hash,
-            {
-              name: raid.name,
-              count: deduplicatedActivities.length,
-              completed:
-                deduplicatedActivities.filter(isActivityCompleted).length,
-              timePlayed: deduplicatedActivities.reduce(
-                (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
-                0
-              ),
-            },
-          ];
-        })
-      ),
-      gambitStats: {
-        games: gambitGames.length,
-        wins: gambitGames.filter(isActivityWin).length,
-        kills: gambitGames.reduce(
-          (acc, e) => acc + getActivityValue(e, "kills"),
-          0
-        ),
-        deaths: gambitGames.reduce(
-          (acc, e) => acc + getActivityValue(e, "deaths"),
-          0
-        ),
-        assists: gambitGames.reduce(
-          (acc, e) => acc + getActivityValue(e, "assists"),
-          0
-        ),
-        timePlayed: gambitGames.reduce(
-          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
-          0
-        ),
-      },
-      pvpStats: {
-        games: pvpGames.length,
-        wins: pvpGames.filter(isActivityWin).length,
-        kills: pvpGames.reduce(
-          (acc, e) => acc + getActivityValue(e, "kills"),
-          0
-        ),
-        deaths: pvpGames.reduce(
-          (acc, e) => acc + getActivityValue(e, "deaths"),
-          0
-        ),
-        assists: pvpGames.reduce(
-          (acc, e) => acc + getActivityValue(e, "assists"),
-          0
-        ),
-        timePlayed: pvpGames.reduce(
-          (acc, e) => acc + getActivityValue(e, "timePlayedSeconds"),
-          0
-        ),
-      },
+      gambitStats: calculateGameStats(gambitGames),
+      pvpStats: calculateGameStats(pvpGames),
       pvePvpSplit: {
         pve: groupedByMode.get(7)?.length ?? 0,
         pvp: groupedByMode.get(5)?.length ?? 0,
@@ -935,8 +828,7 @@ export function useWrappedStats(
         totalCount: sixtySevenActivities.length,
         activities: sixtySevenActivities,
       },
-      hasPGCRData: pgcrData.size > 0,
-      isLoadingPGCRs,
+      hasPGCRData: activities.some((a) => a.entries && a.entries.length > 0),
     };
-  }, [activities, characterMap, pgcrData, isLoadingPGCRs]);
+  }, [activities, characterMap]);
 }
